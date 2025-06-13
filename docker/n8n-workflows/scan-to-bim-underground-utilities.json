@@ -1,0 +1,518 @@
+{
+  "name": "Scan-to-BIM Underground Utilities Workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "scan-to-underground-utilities",
+        "options": {}
+      },
+      "name": "Webhook - Scan Data Input",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "webhookId": "scan-utilities-webhook"
+    },
+    {
+      "parameters": {
+        "operation": "scan/detectUndergroundUtilities",
+        "requestData": {
+          "regionId": "={{$json[\"regionId\"]}}",
+          "groundSurfaceId": "={{$json[\"groundSurfaceId\"]}}"
+        }
+      },
+      "name": "Detect Underground Utilities",
+      "type": "n8n-nodes-revit-mcp.revitMcp",
+      "typeVersion": 1,
+      "position": [450, 300],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json[\"utilities\"].length}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "IF Utilities Detected",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300]
+    },
+    {
+      "parameters": {
+        "operation": "utilities/analyzeDepths",
+        "requestData": {
+          "utilityIds": "={{$json[\"utilities\"].map(u => u.id)}}",
+          "finishedGradeSurfaceId": "={{$json[\"groundSurfaceId\"]}}"
+        }
+      },
+      "name": "Analyze Burial Depths",
+      "type": "n8n-nodes-revit-mcp.revitMcp",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "utilities/createNetwork",
+        "requestData": {
+          "detectedPipes": "={{$json[\"utilities\"]}}",
+          "defaultMaterial": "={{$json[\"material\"] || \"PVC\"}}",
+          "level": "Underground"
+        }
+      },
+      "name": "Create Utility Network",
+      "type": "n8n-nodes-revit-mcp.revitMcp",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "add",
+        "collection": "underground_utilities",
+        "fields": {
+          "scan_id": "={{$json[\"scanId\"]}}",
+          "utility_count": "={{$json[\"utilities\"].length}}",
+          "average_depth": "={{$json[\"summary\"][\"averageDepth\"]}}",
+          "violations": "={{JSON.stringify($json[\"violations\"])}}",
+          "created_at": "={{new Date().toISOString()}}"
+        }
+      },
+      "name": "Store in Qdrant",
+      "type": "n8n-nodes-base.qdrant",
+      "typeVersion": 1,
+      "position": [1050, 200],
+      "credentials": {
+        "qdrantApi": {
+          "id": "2",
+          "name": "Qdrant Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "create",
+        "nodeType": "Utility",
+        "properties": {
+          "type": "={{$json[\"material\"]}}",
+          "depth": "={{$json[\"averageDepth\"]}}",
+          "length": "={{$json[\"totalLength\"]}}",
+          "scanId": "={{$json[\"scanId\"]}}"
+        }
+      },
+      "name": "Create Graph Nodes",
+      "type": "n8n-nodes-base.neo4j",
+      "typeVersion": 1,
+      "position": [1050, 400],
+      "credentials": {
+        "neo4jApi": {
+          "id": "3",
+          "name": "Neo4j Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "utilities/detectClashes",
+        "requestData": {
+          "existingUtilityIds": "={{$json[\"existingIds\"]}}",
+          "proposedUtilityIds": "={{$json[\"network\"][\"pipeIds\"]}}",
+          "checkClearances": true
+        }
+      },
+      "name": "Check for Clashes",
+      "type": "n8n-nodes-revit-mcp.revitMcp",
+      "typeVersion": 1,
+      "position": [1250, 300],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json[\"totalClashes\"]}}",
+              "operation": "larger",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "name": "IF Clashes Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1450, 300]
+    },
+    {
+      "parameters": {
+        "prompt": "Analyze the following underground utility clash report and provide recommendations:\n\nClashes: {{JSON.stringify($json[\"clashes\"], null, 2)}}\n\nProvide specific recommendations for resolving each clash, considering utility type, depth requirements, and clearance standards.",
+        "options": {
+          "temperature": 0.7,
+          "maxTokens": 1000
+        }
+      },
+      "name": "AI Clash Analysis",
+      "type": "n8n-nodes-base.openAi",
+      "typeVersion": 1,
+      "position": [1650, 200],
+      "credentials": {
+        "openAiApi": {
+          "id": "4",
+          "name": "Ollama Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "#bim-alerts",
+        "text": "⚠️ Underground Utility Clashes Detected\n\nProject: {{$json[\"projectName\"]}}\nTotal Clashes: {{$json[\"totalClashes\"]}}\nCritical: {{$json[\"bySeverity\"][\"Critical\"] || 0}}\n\nAI Recommendations:\n{{$json[\"recommendations\"]}}",
+        "attachments": [
+          {
+            "color": "#ff0000",
+            "title": "Clash Report",
+            "title_link": "{{$json[\"reportUrl\"]}}",
+            "fields": [
+              {
+                "title": "Critical Clashes",
+                "value": "{{$json[\"bySeverity\"][\"Critical\"] || 0}}",
+                "short": true
+              },
+              {
+                "title": "Major Clashes",
+                "value": "{{$json[\"bySeverity\"][\"Major\"] || 0}}",
+                "short": true
+              }
+            ]
+          }
+        ]
+      },
+      "name": "Notify Team",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [1850, 200],
+      "credentials": {
+        "slackApi": {
+          "id": "5",
+          "name": "Slack Workspace"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "scan/placeFittings",
+        "requestData": {
+          "pipeIds": "={{$json[\"network\"][\"pipeIds\"]}}",
+          "autoSelectFittings": true
+        }
+      },
+      "name": "Auto-Place Fittings",
+      "type": "n8n-nodes-revit-mcp.revitMcp",
+      "typeVersion": 1,
+      "position": [1250, 500],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Generate comprehensive report\nconst report = {\n  scanId: items[0].json.scanId,\n  timestamp: new Date().toISOString(),\n  summary: {\n    detectedUtilities: items[0].json.utilities.length,\n    createdPipes: items[2].json.network.pipeIds.length,\n    createdStructures: items[2].json.network.structureIds.length,\n    placedFittings: items[4].json.placedCount,\n    totalClashes: items[3].json.totalClashes\n  },\n  depthAnalysis: items[1].json.summary,\n  clashReport: items[3].json.clashes,\n  aiRecommendations: items[5]?.json?.recommendations || 'No clashes found'\n};\n\nreturn [{json: report}];"
+      },
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [2050, 400]
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "measurement": "scan_to_bim_metrics",
+        "tags": {
+          "project": "={{$json[\"projectName\"]}}",
+          "scan_type": "underground_utilities"
+        },
+        "fields": {
+          "utilities_detected": "={{$json[\"summary\"][\"detectedUtilities\"]}}",
+          "pipes_created": "={{$json[\"summary\"][\"createdPipes\"]}}",
+          "clashes_found": "={{$json[\"summary\"][\"totalClashes\"]}}",
+          "processing_time": "={{Date.now() - $json[\"startTime\"]}}"
+        }
+      },
+      "name": "Log Metrics",
+      "type": "n8n-nodes-base.influxDb",
+      "typeVersion": 1,
+      "position": [2250, 400],
+      "credentials": {
+        "influxDbApi": {
+          "id": "6",
+          "name": "InfluxDB Local"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "values": {
+          "string": [
+            {
+              "name": "status",
+              "value": "success"
+            },
+            {
+              "name": "message",
+              "value": "Underground utilities successfully processed from scan data"
+            }
+          ],
+          "number": [
+            {
+              "name": "utilitiesCreated",
+              "value": "={{$json[\"summary\"][\"createdPipes\"]}}"
+            },
+            {
+              "name": "clashesFound",
+              "value": "={{$json[\"summary\"][\"totalClashes\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Prepare Response",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 1,
+      "position": [2450, 400]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2650, 400]
+    }
+  ],
+  "connections": {
+    "Webhook - Scan Data Input": {
+      "main": [
+        [
+          {
+            "node": "Detect Underground Utilities",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Detect Underground Utilities": {
+      "main": [
+        [
+          {
+            "node": "IF Utilities Detected",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Utilities Detected": {
+      "main": [
+        [
+          {
+            "node": "Analyze Burial Depths",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Utility Network",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze Burial Depths": {
+      "main": [
+        [
+          {
+            "node": "Store in Qdrant",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Utility Network": {
+      "main": [
+        [
+          {
+            "node": "Create Graph Nodes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Auto-Place Fittings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Graph Nodes": {
+      "main": [
+        [
+          {
+            "node": "Check for Clashes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Auto-Place Fittings": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check for Clashes": {
+      "main": [
+        [
+          {
+            "node": "IF Clashes Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Clashes Found": {
+      "main": [
+        [
+          {
+            "node": "AI Clash Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Clash Analysis": {
+      "main": [
+        [
+          {
+            "node": "Notify Team",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report": {
+      "main": [
+        [
+          {
+            "node": "Log Metrics",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Metrics": {
+      "main": [
+        [
+          {
+            "node": "Prepare Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "error-handler-workflow"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "scan-to-bim",
+      "createdAt": "2024-06-13T18:00:00.000Z",
+      "updatedAt": "2024-06-13T18:00:00.000Z"
+    },
+    {
+      "name": "underground-utilities",
+      "createdAt": "2024-06-13T18:00:00.000Z",
+      "updatedAt": "2024-06-13T18:00:00.000Z"
+    }
+  ],
+  "triggerCount": 1,
+  "updatedAt": "2024-06-13T18:00:00.000Z",
+  "versionId": "01234567-89ab-cdef-0123-456789abcdef"
+}
