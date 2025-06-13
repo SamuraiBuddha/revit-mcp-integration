@@ -1,0 +1,41 @@
+{
+  "node": "RevitRag",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": [
+    "Development",
+    "CAD & BIM",
+    "AI"
+  ],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": "https://github.com/SamuraiBuddha/revit-mcp-integration"
+      }
+    ]
+  },
+  "subcategories": {
+    "Development": [
+      "API Calls"
+    ],
+    "CAD & BIM": [
+      "Revit"
+    ],
+    "AI": [
+      "RAG",
+      "Vector Search"
+    ]
+  },
+  "alias": [
+    "Autodesk",
+    "BIM",
+    "Model",
+    "Building",
+    "Revit",
+    "MCP",
+    "RAG",
+    "Vector Search",
+    "LLM",
+    "Knowledge Graph"
+  ]
+}
