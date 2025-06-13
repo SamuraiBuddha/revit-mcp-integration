@@ -17,7 +17,7 @@ namespace RevitMcpServer.ScanToBIM
         /// <summary>
         /// Creates Revit pipes from detected centerlines with proper system classification
         /// </summary>
-        Task<List<Pipe>> CreatePipesFromCenterlines(
+        Task<List<Autodesk.Revit.DB.Plumbing.Pipe>> CreatePipesFromCenterlines(
             List<DetectedPipe> detectedPipes,
             PipeCreationSettings settings);
 
@@ -25,9 +25,9 @@ namespace RevitMcpServer.ScanToBIM
         /// Intelligently places fittings at pipe intersections based on angle and system type
         /// </summary>
         Task<FamilyInstance> GenerateFittingAtIntersection(
-            Pipe pipe1,
-            Pipe pipe2,
-            IntersectionAnalysis intersection);
+            Autodesk.Revit.DB.Plumbing.Pipe pipe1,
+            Autodesk.Revit.DB.Plumbing.Pipe pipe2,
+            Models.IntersectionAnalysis intersection);
 
         /// <summary>
         /// Creates complete underground utility networks with proper materials and fittings
@@ -53,7 +53,7 @@ namespace RevitMcpServer.ScanToBIM
         public bool AutoRoute { get; set; } = true;
         public bool AutoSize { get; set; } = true;
         public double DefaultSlope { get; set; } = 0.01; // 1% slope
-        public Dictionary<MEPSystemType, string> SystemMappings { get; set; } = new Dictionary<MEPSystemType, string>();
+        public Dictionary<Models.MEPSystemType, string> SystemMappings { get; set; } = new Dictionary<Models.MEPSystemType, string>();
     }
 
     /// <summary>
@@ -62,9 +62,9 @@ namespace RevitMcpServer.ScanToBIM
     public class MEPCreationResult
     {
         public List<Duct> Ducts { get; set; } = new List<Duct>();
-        public List<Pipe> Pipes { get; set; } = new List<Pipe>();
-        public List<Conduit> Conduits { get; set; } = new List<Conduit>();
-        public List<CableTray> CableTrays { get; set; } = new List<CableTray>();
+        public List<Autodesk.Revit.DB.Plumbing.Pipe> Pipes { get; set; } = new List<Autodesk.Revit.DB.Plumbing.Pipe>();
+        public List<Autodesk.Revit.DB.Electrical.Conduit> Conduits { get; set; } = new List<Autodesk.Revit.DB.Electrical.Conduit>();
+        public List<Autodesk.Revit.DB.Electrical.CableTray> CableTrays { get; set; } = new List<Autodesk.Revit.DB.Electrical.CableTray>();
         public List<FamilyInstance> Fittings { get; set; } = new List<FamilyInstance>();
         public List<MEPSystem> Systems { get; set; } = new List<MEPSystem>();
         
@@ -77,7 +77,7 @@ namespace RevitMcpServer.ScanToBIM
     /// </summary>
     public class UtilityNetworkResult
     {
-        public List<Pipe> CreatedPipes { get; set; } = new List<Pipe>();
+        public List<Autodesk.Revit.DB.Plumbing.Pipe> CreatedPipes { get; set; } = new List<Autodesk.Revit.DB.Plumbing.Pipe>();
         public List<FamilyInstance> CreatedStructures { get; set; } = new List<FamilyInstance>();
         public List<FamilyInstance> CreatedFittings { get; set; } = new List<FamilyInstance>();
         public List<CreationError> Errors { get; set; } = new List<CreationError>();
