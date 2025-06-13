@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Plumbing;
 using Autodesk.Revit.UI;
 using RevitMcpServer.Models;
 using RevitMcpServer.ScanToBIM;
@@ -12,7 +13,7 @@ namespace RevitMcpServer.Controllers
     /// <summary>
     /// MCP endpoints for scan-to-BIM operations
     /// </summary>
-    public class ScanToBIMController : IMcpController
+    public partial class ScanToBIMController : IMcpController
     {
         private readonly UIApplication _uiApp;
         private readonly IPointCloudAnalyzer _pointCloudAnalyzer;
@@ -260,9 +261,9 @@ namespace RevitMcpServer.Controllers
             return collector;
         }
 
-        private List<IntersectionAnalysis> FindPipeIntersections(List<Pipe> pipes)
+        private List<Models.IntersectionAnalysis> FindPipeIntersections(List<Pipe> pipes)
         {
-            var intersections = new List<IntersectionAnalysis>();
+            var intersections = new List<Models.IntersectionAnalysis>();
             
             for (int i = 0; i < pipes.Count - 1; i++)
             {

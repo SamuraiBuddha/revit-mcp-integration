@@ -1,6 +1,10 @@
+using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Plumbing;
+using Autodesk.Revit.DB.Mechanical;
+using Autodesk.Revit.DB.Electrical;
 using RevitMcpServer.Models;
 
 namespace RevitMcpServer.ScanToBIM
@@ -38,18 +42,6 @@ namespace RevitMcpServer.ScanToBIM
         Task<MEPCreationResult> CreateMEPSystemsFromScan(
             MEPClassification classification,
             MEPCreationSettings settings);
-    }
-
-    /// <summary>
-    /// MEP classification from scan analysis
-    /// </summary>
-    public class MEPClassification
-    {
-        public List<DetectedMEPElement> HVACDucts { get; set; } = new List<DetectedMEPElement>();
-        public List<DetectedMEPElement> Pipes { get; set; } = new List<DetectedMEPElement>();
-        public List<DetectedMEPElement> Conduits { get; set; } = new List<DetectedMEPElement>();
-        public List<DetectedMEPElement> CableTrays { get; set; } = new List<DetectedMEPElement>();
-        public double OverallConfidence { get; set; }
     }
 
     /// <summary>

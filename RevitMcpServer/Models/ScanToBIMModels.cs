@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Plumbing;
 
 namespace RevitMcpServer.Models
 {
@@ -56,7 +57,7 @@ namespace RevitMcpServer.Models
         public bool AutoConnectEnabled { get; set; } = true;
         public double MinimumDiameter { get; set; } = 0.5; // feet
         public double MaximumDiameter { get; set; } = 10.0; // feet
-        public PipeSystemType DefaultSystemType { get; set; }
+        public PipingSystemType DefaultSystemType { get; set; }
         public string DefaultMaterial { get; set; } = "Standard";
     }
 
@@ -72,6 +73,8 @@ namespace RevitMcpServer.Models
         public double Angle { get; set; }
         public bool RequiresFitting { get; set; }
         public string RecommendedFittingType { get; set; }
+        public List<Pipe> AllPipes { get; set; }
+        public bool IsGravitySystem { get; set; }
         
         public enum IntersectionType
         {
@@ -85,9 +88,9 @@ namespace RevitMcpServer.Models
     }
 
     /// <summary>
-    /// MEP system classification result
+    /// MEP system classification result - corrected name
     /// </summary>
-    public class MLEPClassification
+    public class MEPClassification
     {
         public List<DetectedMEPElement> HVACDucts { get; set; }
         public List<DetectedMEPElement> Pipes { get; set; }
@@ -95,7 +98,7 @@ namespace RevitMcpServer.Models
         public List<DetectedMEPElement> CableTrays { get; set; }
         public double OverallConfidence { get; set; }
         
-        public MLEPClassification()
+        public MEPClassification()
         {
             HVACDucts = new List<DetectedMEPElement>();
             Pipes = new List<DetectedMEPElement>();
