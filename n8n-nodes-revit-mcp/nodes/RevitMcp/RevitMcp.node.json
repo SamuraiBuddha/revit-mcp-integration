@@ -1,0 +1,32 @@
+{
+  "node": "RevitMcp",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": [
+    "Development",
+    "CAD & BIM"
+  ],
+  "resources": {
+    "primaryDocumentation": [
+      {
+        "url": "https://github.com/SamuraiBuddha/revit-mcp-integration"
+      }
+    ]
+  },
+  "subcategories": {
+    "Development": [
+      "API Calls"
+    ],
+    "CAD & BIM": [
+      "Revit"
+    ]
+  },
+  "alias": [
+    "Autodesk",
+    "BIM",
+    "Model",
+    "Building",
+    "Revit",
+    "MCP"
+  ]
+}
