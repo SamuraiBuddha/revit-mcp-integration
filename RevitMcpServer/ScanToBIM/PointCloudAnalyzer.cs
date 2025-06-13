@@ -276,10 +276,10 @@ namespace RevitMcpServer.ScanToBIM
             return Line.CreateBound(cylinder.StartPoint, cylinder.EndPoint);
         }
 
-        private MEPSystemType InferSystemType(CylindricalObject cylinder)
+        private RevitMcpServer.Models.MEPSystemType InferSystemType(CylindricalObject cylinder)
         {
             // Infer system type based on context and properties
-            return MEPSystemType.DomesticColdWater;
+            return RevitMcpServer.Models.MEPSystemType.DomesticColdWater;
         }
 
         private double AnalyzeGeometricConsistency(DetectedPipe pipe)
@@ -396,7 +396,7 @@ namespace RevitMcpServer.ScanToBIM
         public double Diameter { get; set; }
         public double Confidence { get; set; }
         public PipeMaterial Material { get; set; }
-        public MEPSystemType SystemType { get; set; }
+        public RevitMcpServer.Models.MEPSystemType SystemType { get; set; }
     }
 
     public enum MEPSystemType
