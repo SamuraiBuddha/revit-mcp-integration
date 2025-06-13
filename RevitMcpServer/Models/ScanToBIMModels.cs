@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Plumbing;
+using Autodesk.Revit.DB.Mechanical;
+using Autodesk.Revit.DB.Electrical;
 
 namespace RevitMcpServer.Models
 {
@@ -66,14 +68,14 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class IntersectionAnalysis
     {
-        public Pipe Pipe1 { get; set; }
-        public Pipe Pipe2 { get; set; }
+        public Autodesk.Revit.DB.Plumbing.Pipe Pipe1 { get; set; }
+        public Autodesk.Revit.DB.Plumbing.Pipe Pipe2 { get; set; }
         public XYZ IntersectionPoint { get; set; }
         public IntersectionType Type { get; set; }
         public double Angle { get; set; }
         public bool RequiresFitting { get; set; }
         public string RecommendedFittingType { get; set; }
-        public List<Pipe> AllPipes { get; set; }
+        public List<Autodesk.Revit.DB.Plumbing.Pipe> AllPipes { get; set; }
         public bool IsGravitySystem { get; set; }
         
         public enum IntersectionType
