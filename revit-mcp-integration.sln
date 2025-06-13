@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RevitMcpServer", "RevitMcpServer\RevitMcpServer.csproj", "{422007DE-31D9-2BE4-41F8-9C5F9F2FA589}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{422007DE-31D9-2BE4-41F8-9C5F9F2FA589}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{422007DE-31D9-2BE4-41F8-9C5F9F2FA589}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{422007DE-31D9-2BE4-41F8-9C5F9F2FA589}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{422007DE-31D9-2BE4-41F8-9C5F9F2FA589}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3A6771BC-CD47-43B5-AC2E-14F62D1DD436}
+	EndGlobalSection
+EndGlobal

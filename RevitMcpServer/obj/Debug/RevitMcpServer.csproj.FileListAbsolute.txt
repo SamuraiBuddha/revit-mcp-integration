@@ -1,0 +1,6 @@
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.csproj.AssemblyReference.cache
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.AssemblyInfoInputs.cache
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.AssemblyInfo.cs
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.csproj.CoreCompileInputs.cache
+C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\RevitMcpServer\obj\Debug\RevitMcpServer.sourcelink.json
