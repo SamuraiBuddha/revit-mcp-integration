@@ -1,0 +1,23 @@
+{
+  "version": "1.0",
+  "registry": {
+    "url": "http://mcp-registry:8081",
+    "auth": {
+      "token": "${MCP_AUTH_TOKEN}"
+    }
+  },
+  "router": {
+    "port": 8080,
+    "log_level": "info",
+    "allowed_origins": ["*"]
+  },
+  "tools": {
+    "revit": {
+      "enabled": true,
+      "log_level": "debug"
+    }
+  },
+  "security": {
+    "require_auth": true
+  }
+}
