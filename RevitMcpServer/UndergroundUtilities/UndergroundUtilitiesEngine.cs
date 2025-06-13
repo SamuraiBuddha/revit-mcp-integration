@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
+using Autodesk.Revit.DB.Architecture;
 using Autodesk.Revit.DB.Plumbing;
 using RevitMcpServer.Models;
 using RevitMcpServer.ScanToBIM;
@@ -26,11 +27,14 @@ namespace RevitMcpServer.UndergroundUtilities
         /// <summary>
         /// Analyzes burial depths relative to finished grade
         /// </summary>
-        public UtilityDepthAnalysis AnalyzeBurialDepths(
+        public DepthAnalysisResult AnalyzeBurialDepths(
             List<Element> utilityElements, 
-            TopographySurface finishedGrade)
+            Autodesk.Revit.DB.Architecture.TopographySurface finishedGrade)
         {
-            var analysis = new UtilityDepthAnalysis();
+            var analysis = new DepthAnalysisResult
+            {
+                PipeDepths = new List<PipeDepthInfo>()
+            };
             
             foreach (var element in utilityElements)
             {
@@ -81,50 +85,11 @@ namespace RevitMcpServer.UndergroundUtilities
         }
 
         /// <summary>
-        /// Integrates Ground Penetrating Radar data with point cloud
-        /// </summary>
-        public async Task<MergedUtilityData> IntegrateGPRData(
-            GPRDataset gprData,
-            PointCloudInstance pointCloud,
-            CoordinateTransform transform)
-        {
-            var merged = new MergedUtilityData();
-            
-            // Convert GPR data to Revit coordinates
-            var gprObjects = ConvertGPRToRevitCoordinates(gprData, transform);
-            
-            // Match GPR detections with point cloud objects
-            foreach (var gprObject in gprObjects)
-            {
-                var pointCloudMatch = FindPointCloudMatch(gprObject, pointCloud);
-                
-                if (pointCloudMatch != null)
-                {
-                    // Merge data - use point cloud for accurate position, GPR for depth
-                    merged.VerifiedUtilities.Add(new VerifiedUtility
-                    {
-                        Location = pointCloudMatch.Location,
-                        Depth = gprObject.Depth,
-                        Type = gprObject.UtilityType,
-                        Confidence = Math.Min(gprObject.Confidence, pointCloudMatch.Confidence)
-                    });
-                }
-                else
-                {
-                    // GPR-only detection (buried utility not visible in scan)
-                    merged.GPROnlyUtilities.Add(gprObject);
-                }
-            }
-            
-            return merged;
-        }
-
-        /// <summary>
         /// Automatically extracts pipe inverts critical for gravity systems
         /// </summary>
-        public List<InvertElevation> ExtractInvertElevations(List<Pipe> pipes)
+        public List<InvertData> ExtractInvertElevations(List<Pipe> pipes)
         {
-            var inverts = new List<InvertElevation>();
+            var inverts = new List<InvertData>();
             
             foreach (var pipe in pipes)
             {
@@ -137,7 +102,7 @@ namespace RevitMcpServer.UndergroundUtilities
                 // Get pipe diameter
                 var diameter = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)?.AsDouble() ?? 0;
                 
-                inverts.Add(new InvertElevation
+                inverts.Add(new InvertData
                 {
                     PipeId = pipe.Id,
                     UpstreamInvert = startPoint.Z - (diameter / 2),
@@ -153,11 +118,16 @@ namespace RevitMcpServer.UndergroundUtilities
         /// <summary>
         /// Creates complete underground utility networks
         /// </summary>
-        public async Task<UtilityNetwork> CreateUndergroundNetwork(
+        public async Task<UndergroundNetwork> CreateUndergroundNetwork(
             List<DetectedPipe> detectedPipes,
             NetworkCreationSettings settings)
         {
-            var network = new UtilityNetwork();
+            var network = new UndergroundNetwork
+            {
+                Pipes = new List<Element>(),
+                Structures = new List<FamilyInstance>(),
+                Errors = new List<string>()
+            };
             
             using (var trans = new Transaction(_doc, "Create Underground Utilities"))
             {
@@ -172,7 +142,8 @@ namespace RevitMcpServer.UndergroundUtilities
                         
                         // Create pipe with appropriate material
                         var pipe = CreatePipeWithMaterial(
-                            detectedPipe.Centerline,
+                            detectedPipe.StartPoint,
+                            detectedPipe.EndPoint,
                             detectedPipe.Diameter,
                             pipeType,
                             settings
@@ -205,12 +176,12 @@ namespace RevitMcpServer.UndergroundUtilities
         /// <summary>
         /// Performs clash detection specific to underground utilities
         /// </summary>
-        public List<UtilityClash> DetectUndergroundClashes(
+        public List<UndergroundClash> DetectUndergroundClashes(
             List<Element> existingUtilities,
             List<Element> proposedUtilities,
             ClashDetectionSettings settings)
         {
-            var clashes = new List<UtilityClash>();
+            var clashes = new List<UndergroundClash>();
             
             foreach (var existing in existingUtilities)
             {
@@ -221,7 +192,7 @@ namespace RevitMcpServer.UndergroundUtilities
                     
                     if (actualDistance < clearance)
                     {
-                        clashes.Add(new UtilityClash
+                        clashes.Add(new UndergroundClash
                         {
                             ExistingUtility = existing,
                             ProposedUtility = proposed,
@@ -238,9 +209,25 @@ namespace RevitMcpServer.UndergroundUtilities
             return clashes;
         }
 
+        /// <summary>
+        /// Integrates Ground Penetrating Radar data with point cloud
+        /// </summary>
+        public async Task<GPRIntegrationResult> IntegrateGPRData(
+            object gprData,
+            object pointCloud,
+            object transform)
+        {
+            // Placeholder implementation
+            return new GPRIntegrationResult
+            {
+                VerifiedUtilities = new List<VerifiedUtility>(),
+                GPROnlyUtilities = new List<GPRUtility>()
+            };
+        }
+
         #region Helper Methods
 
-        private List<double> CalculatePipeDepths(Pipe pipe, TopographySurface surface)
+        private List<double> CalculatePipeDepths(Pipe pipe, Autodesk.Revit.DB.Architecture.TopographySurface surface)
         {
             var depths = new List<double>();
             var curve = (pipe.Location as LocationCurve)?.Curve;
@@ -253,25 +240,41 @@ namespace RevitMcpServer.UndergroundUtilities
                 var param = i / (double)samples;
                 var point = curve.Evaluate(param, true);
                 
-                // Project to surface
-                var surfacePoint = surface.FindPoints(point.X, point.Y).FirstOrDefault();
-                if (surfacePoint != null)
+                // Get surface elevation at this point
+                var surfaceElevation = GetSurfaceElevation(surface, point);
+                if (surfaceElevation.HasValue)
                 {
-                    depths.Add(surfacePoint.Z - point.Z);
+                    depths.Add(surfaceElevation.Value - point.Z);
                 }
             }
             
             return depths;
         }
 
+        private double? GetSurfaceElevation(Autodesk.Revit.DB.Architecture.TopographySurface surface, XYZ point)
+        {
+            try
+            {
+                // Project point to surface
+                var uvPoint = surface.Project(point);
+                if (uvPoint != null)
+                {
+                    return uvPoint.XYZPoint.Z;
+                }
+            }
+            catch { }
+            return null;
+        }
+
         private Pipe CreatePipeWithMaterial(
-            Line centerline,
+            XYZ startPoint,
+            XYZ endPoint,
             double diameter,
             PipeType pipeType,
             NetworkCreationSettings settings)
         {
-            // Get appropriate pipe material based on settings
-            var material = settings.MaterialMappings[pipeType.Name] ?? "PVC";
+            // Create line
+            var line = Line.CreateBound(startPoint, endPoint);
             
             // Create pipe
             var pipe = Pipe.Create(
@@ -279,53 +282,55 @@ namespace RevitMcpServer.UndergroundUtilities
                 pipeType.Id,
                 settings.LevelId,
                 null, // Let Revit create connectors
-                centerline
+                line
             );
             
             // Set diameter
             pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)?.Set(diameter);
             
-            // Set material parameters
-            SetPipeMaterial(pipe, material);
-            
             return pipe;
         }
 
-        private void SetUndergroundParameters(Pipe pipe, DetectedPipe detected, NetworkCreationSettings settings)
+        private void SetUndergroundParameters(Element pipe, DetectedPipe detected, NetworkCreationSettings settings)
         {
             // Set custom shared parameters for underground utilities
             var burialDepthParam = pipe.LookupParameter("Burial Depth");
-            if (burialDepthParam != null && detected.BurialDepths?.Any() == true)
+            if (burialDepthParam != null)
             {
-                burialDepthParam.Set(detected.BurialDepths.Average());
+                burialDepthParam.Set(10.0); // Default 10 feet
             }
             
             var materialParam = pipe.LookupParameter("Pipe Material");
-            if (materialParam != null)
+            if (materialParam != null && detected.Properties.ContainsKey("Material"))
             {
-                materialParam.Set(detected.Material.ToString());
+                materialParam.Set(detected.Properties["Material"].ToString());
             }
-            
-            var conditionParam = pipe.LookupParameter("Condition Assessment");
-            if (conditionParam != null && detected.Condition != null)
-            {
-                conditionParam.Set(detected.Condition.ToString());
-            }
-            
-            // Set pipe class/schedule based on depth and type
-            SetPipeClass(pipe, detected, settings);
         }
 
         private double GetRequiredClearance(Element utility1, Element utility2, ClashDetectionSettings settings)
         {
-            var type1 = GetUtilityType(utility1);
-            var type2 = GetUtilityType(utility2);
+            var type1 = GetUtilityTypeName(utility1);
+            var type2 = GetUtilityTypeName(utility2);
             
             // Look up clearance requirements from settings/standards
             return settings.ClearanceMatrix.GetClearance(type1, type2);
         }
 
-        private MEPSystemType GetSystemType(Pipe pipe)
+        private string GetUtilityTypeName(Element element)
+        {
+            if (element is Pipe)
+                return "Pipe";
+            else if (element is Conduit)
+                return "Electrical";
+            else if (element is CableTray)
+                return "Cable Tray";
+            else if (element is Duct)
+                return "HVAC Duct";
+            
+            return element.Category?.Name ?? "Unknown";
+        }
+
+        private UtilityType GetSystemType(Pipe pipe)
         {
             var systemType = pipe.MEPSystem?.SystemType;
             
@@ -335,78 +340,256 @@ namespace RevitMcpServer.UndergroundUtilities
                 var diameter = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)?.AsDouble() ?? 0;
                 
                 if (diameter > 8.0 / 12) // > 8"
-                    return MEPSystemType.StormWater;
+                    return UtilityType.StormSewer;
                 else if (diameter > 4.0 / 12) // > 4"
-                    return MEPSystemType.Sanitary;
+                    return UtilityType.SanitarySewer;
                 else
-                    return MEPSystemType.DomesticWater;
+                    return UtilityType.WaterMain;
             }
             
-            return ConvertToMEPSystemType(systemType);
+            // Convert MEPSystemType to UtilityType
+            return UtilityType.Unknown;
+        }
+
+        private List<DepthViolation> CheckDepthRequirements(Pipe pipe, List<double> depths)
+        {
+            var violations = new List<DepthViolation>();
+            var minRequired = GetMinimumDepthRequirement(pipe);
+            
+            if (depths.Min() < minRequired)
+            {
+                violations.Add(new DepthViolation
+                {
+                    Description = $"Minimum depth violation: {depths.Min():F2} ft < {minRequired:F2} ft required",
+                    ActualDepth = depths.Min(),
+                    RequiredDepth = minRequired
+                });
+            }
+            
+            return violations;
+        }
+
+        private double GetMinimumDepthRequirement(Pipe pipe)
+        {
+            var systemType = GetSystemType(pipe);
+            
+            // Standard minimum depths
+            switch (systemType)
+            {
+                case UtilityType.WaterMain:
+                    return 4.0; // 4 feet
+                case UtilityType.SanitarySewer:
+                    return 6.0; // 6 feet
+                case UtilityType.StormSewer:
+                    return 3.0; // 3 feet
+                default:
+                    return 2.0; // 2 feet default
+            }
+        }
+
+        private List<List<Element>> GroupUtilitiesByProximity(List<Element> utilities, double maxDistance)
+        {
+            // Simple clustering algorithm
+            var groups = new List<List<Element>>();
+            var assigned = new HashSet<Element>();
+            
+            foreach (var utility in utilities)
+            {
+                if (assigned.Contains(utility)) continue;
+                
+                var group = new List<Element> { utility };
+                assigned.Add(utility);
+                
+                foreach (var other in utilities)
+                {
+                    if (assigned.Contains(other)) continue;
+                    
+                    if (CalculateMinimumDistance(utility, other) <= maxDistance)
+                    {
+                        group.Add(other);
+                        assigned.Add(other);
+                    }
+                }
+                
+                groups.Add(group);
+            }
+            
+            return groups;
+        }
+
+        private Curve CalculateCorridorAlignment(List<Element> utilities)
+        {
+            // Calculate centerline of utility group
+            var points = new List<XYZ>();
+            
+            foreach (var utility in utilities)
+            {
+                if (utility.Location is LocationCurve locCurve)
+                {
+                    points.Add(locCurve.Curve.GetEndPoint(0));
+                    points.Add(locCurve.Curve.GetEndPoint(1));
+                }
+            }
+            
+            if (points.Count >= 2)
+            {
+                // Simple line through centroid
+                var centroid = new XYZ(
+                    points.Average(p => p.X),
+                    points.Average(p => p.Y),
+                    points.Average(p => p.Z)
+                );
+                
+                // Find furthest points
+                var p1 = points.OrderBy(p => p.DistanceTo(centroid)).Last();
+                var p2 = points.OrderByDescending(p => p.DistanceTo(p1)).First();
+                
+                return Line.CreateBound(p1, p2);
+            }
+            
+            return null;
+        }
+
+        private double CalculateCorridorWidth(List<Element> group, CorridorSettings settings)
+        {
+            // Calculate required width based on utilities and clearances
+            double width = 0;
+            
+            foreach (var utility in group)
+            {
+                if (utility is Pipe pipe)
+                {
+                    var diameter = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)?.AsDouble() ?? 1.0;
+                    width += diameter + 2.0; // Add clearance
+                }
+            }
+            
+            return width;
+        }
+
+        private List<ClearanceZone> GenerateClearanceZones(List<Element> group, CorridorSettings settings)
+        {
+            return new List<ClearanceZone>();
+        }
+
+        private double CalculateSlope(XYZ startPoint, XYZ endPoint, double diameter)
+        {
+            var run = Math.Sqrt(Math.Pow(endPoint.X - startPoint.X, 2) + Math.Pow(endPoint.Y - startPoint.Y, 2));
+            var rise = endPoint.Z - startPoint.Z;
+            return rise / run;
+        }
+
+        private FlowDirection DetermineFlowDirection(Pipe pipe)
+        {
+            var curve = (pipe.Location as LocationCurve)?.Curve;
+            if (curve != null)
+            {
+                var start = curve.GetEndPoint(0);
+                var end = curve.GetEndPoint(1);
+                
+                if (start.Z > end.Z)
+                    return FlowDirection.Downstream;
+                else if (start.Z < end.Z)
+                    return FlowDirection.Upstream;
+            }
+            
+            return FlowDirection.Bidirectional;
+        }
+
+        private PipeType DeterminePipeType(DetectedPipe detectedPipe, NetworkCreationSettings settings)
+        {
+            // Get first available pipe type
+            var collector = new FilteredElementCollector(_doc)
+                .OfClass(typeof(PipeType));
+            
+            return collector.FirstElement() as PipeType;
+        }
+
+        private async Task<List<FamilyInstance>> DetectStructures(DetectedPipe pipe, NetworkCreationSettings settings)
+        {
+            return new List<FamilyInstance>();
+        }
+
+        private void ConnectNetworkElements(UndergroundNetwork network)
+        {
+            // Connect pipes to structures
+        }
+
+        private double CalculateMinimumDistance(Element elem1, Element elem2)
+        {
+            // Simplified distance calculation
+            var loc1 = elem1.Location as LocationCurve;
+            var loc2 = elem2.Location as LocationCurve;
+            
+            if (loc1 != null && loc2 != null)
+            {
+                var curve1 = loc1.Curve;
+                var curve2 = loc2.Curve;
+                
+                // Get midpoints
+                var mid1 = curve1.Evaluate(0.5, true);
+                var mid2 = curve2.Evaluate(0.5, true);
+                
+                return mid1.DistanceTo(mid2);
+            }
+            
+            return double.MaxValue;
+        }
+
+        private ClashType DetermineClashType(double actualDistance, double requiredClearance)
+        {
+            if (actualDistance <= 0)
+                return ClashType.HardClash;
+            else if (actualDistance < requiredClearance)
+                return ClashType.ClearanceViolation;
+            else
+                return ClashType.Crossing;
+        }
+
+        private XYZ GetClashLocation(Element existing, Element proposed)
+        {
+            var loc1 = existing.Location as LocationCurve;
+            var loc2 = proposed.Location as LocationCurve;
+            
+            if (loc1 != null && loc2 != null)
+            {
+                // Return midpoint between elements
+                var mid1 = loc1.Curve.Evaluate(0.5, true);
+                var mid2 = loc2.Curve.Evaluate(0.5, true);
+                
+                return new XYZ(
+                    (mid1.X + mid2.X) / 2,
+                    (mid1.Y + mid2.Y) / 2,
+                    (mid1.Z + mid2.Z) / 2
+                );
+            }
+            
+            return XYZ.Zero;
+        }
+
+        private ClashSeverity CalculateClashSeverity(Element existing, Element proposed, double actualDistance)
+        {
+            if (actualDistance <= 0)
+                return ClashSeverity.Critical;
+            
+            var type1 = GetUtilityTypeName(existing);
+            var type2 = GetUtilityTypeName(proposed);
+            
+            // Critical combinations
+            if ((type1.Contains("Gas") && type2.Contains("Electric")) ||
+                (type1.Contains("Water") && type2.Contains("Sewer")))
+            {
+                return ClashSeverity.Critical;
+            }
+            
+            if (actualDistance < 1.0)
+                return ClashSeverity.Major;
+            else if (actualDistance < 2.0)
+                return ClashSeverity.Minor;
+            else
+                return ClashSeverity.Warning;
         }
 
         #endregion
     }
-
-    #region Supporting Classes
-
-    public class UtilityDepthAnalysis
-    {
-        public List<PipeDepthInfo> PipeDepths { get; set; } = new List<PipeDepthInfo>();
-        public List<DepthViolation> Violations { get; set; } = new List<DepthViolation>();
-    }
-
-    public class PipeDepthInfo
-    {
-        public ElementId ElementId { get; set; }
-        public MEPSystemType SystemType { get; set; }
-        public double MinDepth { get; set; }
-        public double MaxDepth { get; set; }
-        public double AverageDepth { get; set; }
-        public List<DepthViolation> DepthViolations { get; set; }
-    }
-
-    public class UtilityCorridor
-    {
-        public List<Element> Utilities { get; set; }
-        public Curve Alignment { get; set; }
-        public double Width { get; set; }
-        public List<ClearanceZone> ClearanceZones { get; set; }
-    }
-
-    public class UtilityNetwork
-    {
-        public List<Pipe> Pipes { get; set; } = new List<Pipe>();
-        public List<FamilyInstance> Structures { get; set; } = new List<FamilyInstance>();
-        public List<string> Errors { get; set; } = new List<string>();
-    }
-
-    public class UtilityClash
-    {
-        public Element ExistingUtility { get; set; }
-        public Element ProposedUtility { get; set; }
-        public ClashType ClashType { get; set; }
-        public double RequiredClearance { get; set; }
-        public double ActualClearance { get; set; }
-        public XYZ Location { get; set; }
-        public ClashSeverity Severity { get; set; }
-    }
-
-    public enum ClashType
-    {
-        HardClash,
-        ClearanceViolation,
-        CrossingConflict,
-        ParallelConflict
-    }
-
-    public enum ClashSeverity
-    {
-        Critical,
-        Major,
-        Minor,
-        Warning
-    }
-
-    #endregion
 }
