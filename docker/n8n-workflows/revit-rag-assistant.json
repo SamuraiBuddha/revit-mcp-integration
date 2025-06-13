@@ -1,0 +1,191 @@
+{
+  "name": "Revit Element Query with RAG",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "element",
+        "operation": "getByCategory",
+        "category": "Walls",
+        "options": {}
+      },
+      "name": "Revit MCP",
+      "type": "revitMcp",
+      "typeVersion": 1,
+      "position": [
+        460,
+        300
+      ],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "queryElements",
+        "query": "walls with fire rating over 60 minutes",
+        "limit": 5,
+        "options": {
+          "includeParameters": true,
+          "vectorDatabase": "qdrant"
+        }
+      },
+      "name": "Revit RAG",
+      "type": "revitRag",
+      "typeVersion": 1,
+      "position": [
+        680,
+        300
+      ],
+      "credentials": {
+        "revitMcpApi": {
+          "id": "1",
+          "name": "Revit MCP API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.openai.com/v1/chat/completions",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialName": "openaiApi",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "gpt-4"
+            },
+            {
+              "name": "messages",
+              "value": "={{ [\n  {\n    \"role\": \"system\",\n    \"content\": \"You are an AI assistant that helps analyze BIM (Building Information Modeling) data from Revit. Provide clear, concise explanations of the elements and their properties. Focus on highlighting important information for building compliance and design reviews.\"\n  },\n  {\n    \"role\": \"user\",\n    \"content\": `I'm looking for information about fire-rated walls in my Revit model. Here's the data from my query: ${JSON.stringify($node[\"Revit RAG\"].json)}`\n  }\n] }}"
+            },
+            {
+              "name": "temperature",
+              "value": 0.7
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Generate Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [
+        900,
+        300
+      ],
+      "credentials": {
+        "openaiApi": {
+          "id": "2",
+          "name": "OpenAI API account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "={{ $json.choices[0].message.content }}",
+        "additionalFields": {
+          "fileName": "fire-rated-walls-report.md"
+        }
+      },
+      "name": "Create Report File",
+      "type": "n8n-nodes-base.writeFile",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        300
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Revit MCP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revit MCP": {
+      "main": [
+        [
+          {
+            "node": "Revit RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revit RAG": {
+      "main": [
+        [
+          {
+            "node": "Generate Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Report": {
+      "main": [
+        [
+          {
+            "node": "Create Report File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {},
+  "versionId": "92f03d25-e2c0-4caf-9c19-f09c97e26a32",
+  "id": "107",
+  "meta": {
+    "instanceId": "71f3304c7fc29afa80ca3d8e61427b68ebc2d16ee79afec17a4cfd9216a5ff8d"
+  },
+  "tags": [
+    {
+      "id": "1",
+      "name": "Revit"
+    },
+    {
+      "id": "2",
+      "name": "BIM"
+    },
+    {
+      "id": "3",
+      "name": "RAG"
+    }
+  ]
+}
