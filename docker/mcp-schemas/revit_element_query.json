@@ -1,0 +1,31 @@
+{
+  "name": "Revit Element Query",
+  "description": "Query Revit elements by category, type, or properties",
+  "version": "1.0.0",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "category": {
+        "type": "string",
+        "description": "Revit category (e.g., Walls, Doors, Windows)"
+      },
+      "filter": {
+        "type": "string",
+        "description": "Parameter filter expression"
+      }
+    },
+    "required": ["category"]
+  },
+  "output_schema": {
+    "type": "array",
+    "items": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "integer" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "parameters": { "type": "object" }
+      }
+    }
+  }
+}
