@@ -1,0 +1,33 @@
+{
+  "name": "Revit Dynamo Script Execution",
+  "description": "Execute a Dynamo script in Revit",
+  "version": "1.0.0",
+  "input_schema": {
+    "type": "object",
+    "properties": {
+      "script_path": {
+        "type": "string",
+        "description": "Path to the Dynamo script"
+      },
+      "parameters": {
+        "type": "object",
+        "description": "Script parameters",
+        "additionalProperties": true
+      }
+    },
+    "required": ["script_path"]
+  },
+  "output_schema": {
+    "type": "object",
+    "properties": {
+      "success": { 
+        "type": "boolean",
+        "description": "Whether the script executed successfully"
+      },
+      "results": { 
+        "type": "object",
+        "description": "Results of the script execution"
+      }
+    }
+  }
+}
