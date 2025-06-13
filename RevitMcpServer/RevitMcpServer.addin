@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>Revit MCP Server</Name>
+    <Assembly>RevitMcpServer\RevitMcpServer.dll</Assembly>
+    <AddInId>B31B1D47-7ED2-4C08-A4DB-7E6352F87C5F</AddInId>
+    <FullClassName>RevitMcpServer.RevitMcpServerApp</FullClassName>
+    <VendorId>SamuraiBuddha</VendorId>
+    <VendorDescription>Revit MCP Integration</VendorDescription>
+  </AddIn>
+</RevitAddIns>
