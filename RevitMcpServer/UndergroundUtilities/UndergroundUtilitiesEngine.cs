@@ -85,11 +85,11 @@ namespace RevitMcpServer.UndergroundUtilities
         }
 
         /// <summary>
-        /// Automatically extracts pipe inverts critical for gravity systems
+        /// Extracts pipe invert elevations from pipes (interface implementation)
         /// </summary>
-        public List<InvertData> ExtractInvertElevations(List<Pipe> pipes)
+        public async Task<Dictionary<Pipe, double>> ExtractInvertElevations(List<Pipe> pipes)
         {
-            var inverts = new List<InvertData>();
+            var result = new Dictionary<Pipe, double>();
             
             foreach (var pipe in pipes)
             {
@@ -97,36 +97,30 @@ namespace RevitMcpServer.UndergroundUtilities
                 if (curve == null) continue;
                 
                 var startPoint = curve.GetEndPoint(0);
-                var endPoint = curve.GetEndPoint(1);
                 
                 // Get pipe diameter
                 var diameter = pipe.get_Parameter(BuiltInParameter.RBS_PIPE_DIAMETER_PARAM)?.AsDouble() ?? 0;
                 
-                inverts.Add(new InvertData
-                {
-                    PipeId = pipe.Id,
-                    UpstreamInvert = startPoint.Z - (diameter / 2),
-                    DownstreamInvert = endPoint.Z - (diameter / 2),
-                    Slope = CalculateSlope(startPoint, endPoint, diameter),
-                    FlowDirection = DetermineFlowDirection(pipe)
-                });
+                // Calculate invert elevation (bottom of pipe)
+                var invertElevation = startPoint.Z - (diameter / 2);
+                result[pipe] = invertElevation;
             }
             
-            return inverts;
+            return await Task.FromResult(result);
         }
 
         /// <summary>
-        /// Creates complete underground utility networks
+        /// Creates complete underground utility network (interface implementation)
         /// </summary>
-        public async Task<UndergroundNetwork> CreateUndergroundNetwork(
-            List<DetectedPipe> detectedPipes,
+        public async Task<UtilityNetworkResult> CreateUndergroundNetwork(
+            List<RevitMcpServer.Models.DetectedPipe> detectedPipes,
             NetworkCreationSettings settings)
         {
-            var network = new UndergroundNetwork
+            var result = new UtilityNetworkResult
             {
-                Pipes = new List<Element>(),
-                Structures = new List<FamilyInstance>(),
-                Errors = new List<string>()
+                CreatedPipes = new List<Pipe>(),
+                CreatedStructures = new List<FamilyInstance>(),
+                Errors = new List<CreationError>()
             };
             
             using (var trans = new Transaction(_doc, "Create Underground Utilities"))
@@ -152,25 +146,29 @@ namespace RevitMcpServer.UndergroundUtilities
                         // Set underground-specific parameters
                         SetUndergroundParameters(pipe, detectedPipe, settings);
                         
-                        network.Pipes.Add(pipe);
+                        result.CreatedPipes.Add(pipe);
                         
                         // Detect and create structures (manholes, vaults)
                         var structures = await DetectStructures(detectedPipe, settings);
-                        network.Structures.AddRange(structures);
+                        result.CreatedStructures.AddRange(structures);
                     }
                     catch (Exception ex)
                     {
-                        network.Errors.Add($"Failed to create pipe: {ex.Message}");
+                        result.Errors.Add(new CreationError
+                        {
+                            Message = $"Failed to create pipe: {ex.Message}",
+                            DetectedPipe = detectedPipe
+                        });
                     }
                 }
                 
                 // Connect network elements
-                ConnectNetworkElements(network);
+                ConnectNetworkElements(result);
                 
                 trans.Commit();
             }
             
-            return network;
+            return result;
         }
 
         /// <summary>
@@ -280,7 +278,7 @@ namespace RevitMcpServer.UndergroundUtilities
             var pipe = Pipe.Create(
                 _doc,
                 pipeType.Id,
-                settings.LevelId,
+                settings.ReferenceLevel.Id,
                 null, // Let Revit create connectors
                 line
             );
@@ -291,7 +289,7 @@ namespace RevitMcpServer.UndergroundUtilities
             return pipe;
         }
 
-        private void SetUndergroundParameters(Element pipe, DetectedPipe detected, NetworkCreationSettings settings)
+        private void SetUndergroundParameters(Element pipe, RevitMcpServer.Models.DetectedPipe detected, NetworkCreationSettings settings)
         {
             // Set custom shared parameters for underground utilities
             var burialDepthParam = pipe.LookupParameter("Burial Depth");
@@ -320,11 +318,11 @@ namespace RevitMcpServer.UndergroundUtilities
         {
             if (element is Pipe)
                 return "Pipe";
-            else if (element is Conduit)
+            else if (element is Autodesk.Revit.DB.Electrical.Conduit)
                 return "Electrical";
-            else if (element is CableTray)
+            else if (element is Autodesk.Revit.DB.Electrical.CableTray)
                 return "Cable Tray";
-            else if (element is Duct)
+            else if (element is Autodesk.Revit.DB.Mechanical.Duct)
                 return "HVAC Duct";
             
             return element.Category?.Name ?? "Unknown";
@@ -496,7 +494,7 @@ namespace RevitMcpServer.UndergroundUtilities
             return FlowDirection.Bidirectional;
         }
 
-        private PipeType DeterminePipeType(DetectedPipe detectedPipe, NetworkCreationSettings settings)
+        private PipeType DeterminePipeType(RevitMcpServer.Models.DetectedPipe detectedPipe, NetworkCreationSettings settings)
         {
             // Get first available pipe type
             var collector = new FilteredElementCollector(_doc)
@@ -505,12 +503,12 @@ namespace RevitMcpServer.UndergroundUtilities
             return collector.FirstElement() as PipeType;
         }
 
-        private async Task<List<FamilyInstance>> DetectStructures(DetectedPipe pipe, NetworkCreationSettings settings)
+        private async Task<List<FamilyInstance>> DetectStructures(RevitMcpServer.Models.DetectedPipe pipe, NetworkCreationSettings settings)
         {
             return new List<FamilyInstance>();
         }
 
-        private void ConnectNetworkElements(UndergroundNetwork network)
+        private void ConnectNetworkElements(UtilityNetworkResult network)
         {
             // Connect pipes to structures
         }
