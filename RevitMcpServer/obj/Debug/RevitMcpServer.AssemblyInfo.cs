@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("RevitMcpServer")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2a76f88e55f75a3ef94f1951d9761a4639d47bef")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+31f31929b50fd7265460b89dfa975c4649a960c1")]
 [assembly: System.Reflection.AssemblyProductAttribute("RevitMcpServer")]
 [assembly: System.Reflection.AssemblyTitleAttribute("RevitMcpServer")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
