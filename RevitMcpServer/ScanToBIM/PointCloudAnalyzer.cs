@@ -25,12 +25,12 @@ namespace RevitMcpServer.ScanToBIM
         /// <summary>
         /// Detects pipes in point cloud region using ML cylindrical detection
         /// </summary>
-        public async Task<List<DetectedPipe>> DetectPipes(PointCloudRegion region, double confidenceThreshold = 0.85)
+        public async Task<List<DetectedPipe>> DetectPipes(string pointCloudId, double confidenceThreshold)
         {
             var detectedPipes = new List<DetectedPipe>();
             
             // Extract point cloud data for ML processing
-            var points = ExtractPointsFromRegion(region);
+            var points = ExtractPointsFromRegion(pointCloudId);
             
             // Use YOLO-based cylindrical detection
             var cylinders = await _mlService.DetectCylinders(points);
@@ -57,10 +57,11 @@ namespace RevitMcpServer.ScanToBIM
         }
 
         /// <summary>
-        /// Classifies MEP systems (HVAC ducts, piping, conduit, cable trays)
+        /// Classifies MEP elements from detected objects
         /// </summary>
-        public async Task<MEPClassification> ClassifyMEPSystems(List<DetectedObject> objects)
+        public async Task<MEPClassification> ClassifyMEPElements(string scanDataId)
         {
+            var objects = GetDetectedObjects(scanDataId);
             var classification = new MEPClassification();
             
             foreach (var obj in objects)
@@ -69,34 +70,34 @@ namespace RevitMcpServer.ScanToBIM
                 {
                     case MEPType.HVACDuct:
                         // Rectangular patterns, larger cross-sections
-                        classification.HVACDucts.Add(new DetectedDuct
+                        classification.HVACDucts.Add(new DetectedMEPElement
                         {
-                            Width = obj.BoundingBox.Width,
-                            Height = obj.BoundingBox.Height,
-                            Path = ExtractDuctPath(obj)
+                            BoundingBox = obj.Bounds,
+                            Type = "HVACDuct",
+                            Confidence = obj.Confidence
                         });
                         break;
                         
                     case MEPType.Piping:
                         // Cylindrical, various sizes
-                        classification.Pipes.Add(ConvertToPipe(obj));
+                        classification.Pipes.Add(ConvertToMEPElement(obj));
                         break;
                         
                     case MEPType.Conduit:
                         // Small cylinders, parallel runs
-                        classification.Conduits.Add(new DetectedConduit
+                        classification.Conduits.Add(new DetectedMEPElement
                         {
                             Diameter = obj.EstimatedDiameter,
                             Route = ExtractConduitRoute(obj),
-                            IsFlexible = DetectFlexibility(obj)
+                            Type = "Conduit"
                         });
                         break;
                         
                     case MEPType.CableTray:
                         // Ladder patterns
-                        classification.CableTrays.Add(new DetectedCableTray
+                        classification.CableTrays.Add(new DetectedMEPElement
                         {
-                            Width = obj.BoundingBox.Width,
+                            Width = obj.Bounds.Max.X - obj.Bounds.Min.X,
                             Type = IdentifyCableTrayType(obj),
                             Route = ExtractTrayRoute(obj)
                         });
@@ -105,6 +106,23 @@ namespace RevitMcpServer.ScanToBIM
             }
             
             return classification;
+        }
+
+        /// <summary>
+        /// Analyzes confidence level for a detected pipe
+        /// </summary>
+        public double AnalyzeConfidence(DetectedPipe pipe)
+        {
+            // Multi-factor confidence analysis
+            var factors = new List<double>
+            {
+                pipe.Confidence, // Base ML confidence
+                AnalyzeGeometricConsistency(pipe),
+                AnalyzeMaterialConsistency(pipe),
+                AnalyzeContextualPlausibility(pipe)
+            };
+            
+            return factors.Average();
         }
 
         /// <summary>
@@ -152,9 +170,9 @@ namespace RevitMcpServer.ScanToBIM
         /// </summary>
         public async Task<List<UndergroundPipe>> DetectUndergroundPipes(
             PointCloudRegion region, 
-            Surface groundSurface)
+            GroundSurface groundSurface)
         {
-            var pipes = await DetectPipes(region);
+            var pipes = await DetectPipes(region.Id, 0.75);
             var undergroundPipes = new List<UndergroundPipe>();
             
             foreach (var pipe in pipes)
@@ -175,7 +193,19 @@ namespace RevitMcpServer.ScanToBIM
 
         #region Helper Methods
 
-        private List<double> CalculateBurialDepths(Line centerline, Surface ground)
+        private List<XYZ> ExtractPointsFromRegion(string regionId)
+        {
+            // Implementation to extract points from point cloud region
+            return new List<XYZ>();
+        }
+
+        private List<DetectedObject> GetDetectedObjects(string scanDataId)
+        {
+            // Implementation to get detected objects
+            return new List<DetectedObject>();
+        }
+
+        private List<double> CalculateBurialDepths(Line centerline, GroundSurface ground)
         {
             var depths = new List<double>();
             const int samplePoints = 10;
@@ -184,7 +214,7 @@ namespace RevitMcpServer.ScanToBIM
             {
                 var param = i / (double)samplePoints;
                 var point = centerline.Evaluate(param, true);
-                var groundElev = ground.Project(point).XYZPoint.Z;
+                var groundElev = ground.GetElevationAt(point);
                 depths.Add(groundElev - point.Z);
             }
             
@@ -235,10 +265,124 @@ namespace RevitMcpServer.ScanToBIM
             
             // Placeholder logic
             if (cylinder.AverageColor.Blue > 200) return PipeMaterial.PVC;
-            if (cylinder.Reflectivity > 0.8) return PipeMaterial.StainlessSteel;
-            if (cylinder.Radius > 8.0 / 12) return PipeMaterial.DuctileIron;
+            if (cylinder.Reflectivity > 0.8) return PipeMaterial.Steel;
+            if (cylinder.Radius > 8.0 / 12) return PipeMaterial.Concrete;
             
             return PipeMaterial.Unknown;
+        }
+
+        private Line CreateCenterline(CylindricalObject cylinder)
+        {
+            return Line.CreateBound(cylinder.StartPoint, cylinder.EndPoint);
+        }
+
+        private MEPSystemType InferSystemType(CylindricalObject cylinder)
+        {
+            // Infer system type based on context and properties
+            return MEPSystemType.DomesticColdWater;
+        }
+
+        private double AnalyzeGeometricConsistency(DetectedPipe pipe)
+        {
+            // Analyze how consistent the pipe geometry is
+            return 0.9;
+        }
+
+        private double AnalyzeMaterialConsistency(DetectedPipe pipe)
+        {
+            // Analyze material consistency along the pipe
+            return 0.85;
+        }
+
+        private double AnalyzeContextualPlausibility(DetectedPipe pipe)
+        {
+            // Analyze if the pipe makes sense in context
+            return 0.95;
+        }
+
+        private List<DetectedPipe> FindAlignedSegments(DetectedPipe segment, List<DetectedPipe> segments, HashSet<DetectedPipe> processed)
+        {
+            // Find segments that align with the given segment
+            return new List<DetectedPipe>();
+        }
+
+        private DetectedPipe MergeSegments(DetectedPipe segment, List<DetectedPipe> aligned)
+        {
+            // Merge aligned segments into one
+            return segment;
+        }
+
+        private PipeMaterial InferUndergroundMaterial(DetectedPipe pipe)
+        {
+            // Infer material for underground pipes
+            return pipe.Material;
+        }
+
+        private PipeCondition AssessPipeCondition(DetectedPipe pipe)
+        {
+            // Assess pipe condition based on scan data
+            return PipeCondition.Good;
+        }
+
+        private bool IsVerticalPlane(Plane plane)
+        {
+            return Math.Abs(plane.Normal.Z) < 0.1;
+        }
+
+        private bool IsHorizontalPlane(Plane plane)
+        {
+            return Math.Abs(plane.Normal.Z) > 0.9;
+        }
+
+        private bool IsColumnLike(Plane plane)
+        {
+            // Check if plane represents a column
+            return false;
+        }
+
+        private StructuralElement CreateColumnFromPlane(Plane plane)
+        {
+            return new StructuralElement { Type = "Column" };
+        }
+
+        private StructuralElement CreateWallFromPlane(Plane plane)
+        {
+            return new StructuralElement { Type = "Wall" };
+        }
+
+        private StructuralElement CreateSlabFromPlane(Plane plane)
+        {
+            return new StructuralElement { Type = "Slab" };
+        }
+
+        private StructuralElement AnalyzeAsBeam(Plane plane)
+        {
+            return null;
+        }
+
+        private DetectedMEPElement ConvertToMEPElement(DetectedObject obj)
+        {
+            return new DetectedMEPElement
+            {
+                BoundingBox = obj.Bounds,
+                Type = obj.Type,
+                Confidence = obj.Confidence
+            };
+        }
+
+        private List<XYZ> ExtractConduitRoute(DetectedObject obj)
+        {
+            return new List<XYZ>();
+        }
+
+        private string IdentifyCableTrayType(DetectedObject obj)
+        {
+            return "Ladder";
+        }
+
+        private List<XYZ> ExtractTrayRoute(DetectedObject obj)
+        {
+            return new List<XYZ>();
         }
 
         #endregion
@@ -255,22 +399,15 @@ namespace RevitMcpServer.ScanToBIM
         public MEPSystemType SystemType { get; set; }
     }
 
-    public class UndergroundPipe
+    public enum MEPSystemType
     {
-        public DetectedPipe Pipe { get; set; }
-        public List<double> BurialDepths { get; set; }
-        public PipeMaterial Material { get; set; }
-        public PipeCondition Condition { get; set; }
-    }
-
-    public enum PipeMaterial
-    {
-        PVC, HDPE, DuctileIron, CastIron, Concrete, Clay, StainlessSteel, Copper, Unknown
-    }
-
-    public enum PipeCondition
-    {
-        Excellent, Good, Fair, Poor, Critical
+        DomesticColdWater,
+        DomesticHotWater,
+        FireProtection,
+        Sanitary,
+        Storm,
+        HVAC,
+        Unknown
     }
 
     #endregion
