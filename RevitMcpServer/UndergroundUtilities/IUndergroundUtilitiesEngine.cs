@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Plumbing;
 using RevitMcpServer.Models;
 using RevitMcpServer.ScanToBIM;
@@ -28,6 +29,7 @@ namespace RevitMcpServer.UndergroundUtilities
     public class NetworkCreationSettings
     {
         public Level ReferenceLevel { get; set; }
+        public ElementId LevelId => ReferenceLevel?.Id;
         public bool AutoSizeEnabled { get; set; } = true;
         public bool CreateStructures { get; set; } = true;
         public double MinimumSlope { get; set; } = 0.01;
