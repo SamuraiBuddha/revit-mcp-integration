@@ -385,30 +385,7 @@ namespace RevitMcpServer.ScanToBIM
         #endregion
     }
 
-    #region Supporting Classes
-
-    public class PipeCreationSettings
-    {
-        public Level ReferenceLevel { get; set; }
-        public Dictionary<MEPSystemType, string> SystemTypeMappings { get; set; }
-        public bool AutoSizeEnabled { get; set; }
-        public double DefaultSlope { get; set; }
-    }
-
-    public class IntersectionAnalysis
-    {
-        public List<Pipe> AllPipes { get; set; }
-        public double Angle { get; set; }
-        public XYZ IntersectionPoint { get; set; }
-        public bool IsGravitySystem { get; set; }
-    }
-
-    public class UtilityNetworkResult
-    {
-        public List<Pipe> CreatedPipes { get; set; } = new List<Pipe>();
-        public List<FamilyInstance> CreatedStructures { get; set; } = new List<FamilyInstance>();
-        public List<CreationError> Errors { get; set; } = new List<CreationError>();
-    }
+    #region Supporting Enums
 
     public enum FittingType
     {
