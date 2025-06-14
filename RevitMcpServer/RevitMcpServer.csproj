@@ -40,4 +40,22 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
+
+  <!-- Exclude complex components from compilation for minimal POC -->
+  <ItemGroup>
+    <Compile Remove="Controllers\DynamoController.cs" />
+    <Compile Remove="Controllers\ScanToBIMController.cs" />
+    <Compile Remove="Controllers\ScanToBIMControllerHelpers.cs" />
+    <Compile Remove="Controllers\UndergroundUtilitiesController.cs" />
+    <Compile Remove="ScanToBIM\**" />
+    <Compile Remove="UndergroundUtilities\**" />
+    <Compile Remove="Services\**" />
+    <None Include="Controllers\DynamoController.cs" />
+    <None Include="Controllers\ScanToBIMController.cs" />
+    <None Include="Controllers\ScanToBIMControllerHelpers.cs" />
+    <None Include="Controllers\UndergroundUtilitiesController.cs" />
+    <None Include="ScanToBIM\**" />
+    <None Include="UndergroundUtilities\**" />
+    <None Include="Services\**" />
+  </ItemGroup>
 </Project>
