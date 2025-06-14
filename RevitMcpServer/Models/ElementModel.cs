@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace RevitMcpServer.Models
 {
@@ -8,22 +8,22 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class ElementModel
     {
-        [JsonPropertyName("id")]
+        [JsonProperty("id")]
         public int Id { get; set; }
         
-        [JsonPropertyName("name")]
+        [JsonProperty("name")]
         public string Name { get; set; }
         
-        [JsonPropertyName("category")]
+        [JsonProperty("category")]
         public string Category { get; set; }
         
-        [JsonPropertyName("parameters")]
+        [JsonProperty("parameters")]
         public Dictionary<string, string> Parameters { get; set; } = new Dictionary<string, string>();
         
-        [JsonPropertyName("location")]
+        [JsonProperty("location")]
         public LocationInfo Location { get; set; }
         
-        [JsonPropertyName("boundingBox")]
+        [JsonProperty("boundingBox")]
         public BoundingBoxInfo BoundingBox { get; set; }
     }
     
@@ -32,16 +32,16 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class LocationInfo
     {
-        [JsonPropertyName("x")]
+        [JsonProperty("x")]
         public double X { get; set; }
         
-        [JsonPropertyName("y")]
+        [JsonProperty("y")]
         public double Y { get; set; }
         
-        [JsonPropertyName("z")]
+        [JsonProperty("z")]
         public double Z { get; set; }
         
-        [JsonPropertyName("rotation")]
+        [JsonProperty("rotation")]
         public double Rotation { get; set; }
     }
     
@@ -50,10 +50,10 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class BoundingBoxInfo
     {
-        [JsonPropertyName("min")]
+        [JsonProperty("min")]
         public Point3D Min { get; set; }
         
-        [JsonPropertyName("max")]
+        [JsonProperty("max")]
         public Point3D Max { get; set; }
     }
     
@@ -62,13 +62,13 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class Point3D
     {
-        [JsonPropertyName("x")]
+        [JsonProperty("x")]
         public double X { get; set; }
         
-        [JsonPropertyName("y")]
+        [JsonProperty("y")]
         public double Y { get; set; }
         
-        [JsonPropertyName("z")]
+        [JsonProperty("z")]
         public double Z { get; set; }
     }
 }
