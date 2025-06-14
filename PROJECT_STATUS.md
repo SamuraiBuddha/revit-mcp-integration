@@ -1,6 +1,6 @@
 # Revit MCP Integration - Project Status
 
-## Current Status (Updated: June 14, 2025, 6:50 AM)
+## Current Status (Updated: June 14, 2025, 6:56 AM)
 
 ### 🎉 WEB SERVER ISSUE FIXED! 🎉
 - Fixed web server blocking issue in McpServer.cs
@@ -16,6 +16,8 @@
 - ✅ Fixed deployment script (removed incorrect net48 subdirectory)
 - ✅ Fixed web server blocking issue (removed .Wait() call)
 - ✅ Added server state change logging
+- ✅ Changed log location to GitHub repository folder
+- ✅ Added .gitignore file to exclude logs and build artifacts
 - ✅ Project is ready for deployment and endpoint testing
 
 ### Build Warnings (Non-blocking)
@@ -74,7 +76,8 @@ Minimal POC Build (WORKING):
 ├── ElementController.cs (basic CRUD with EmbedIO)
 ├── RevitApiWrapper.cs (utilities)
 ├── Models/ (core data structures only)
-└── build-and-deploy.bat (fixed paths)
+├── build-and-deploy.bat (fixed paths)
+└── .gitignore (exclude logs and build artifacts)
 
 Excluded (for now):
 ├── DynamoController.cs
@@ -93,6 +96,7 @@ Excluded (for now):
 - ✅ Successfully built the project
 - ✅ Fixed deployment script paths
 - ✅ Fixed web server blocking issue
+- ✅ Added .gitignore for logs and build artifacts
 - ✅ Ready for endpoint testing!
 
 ### Technical Notes
