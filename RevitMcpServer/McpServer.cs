@@ -149,7 +149,7 @@ namespace RevitMcpServer
     // Serilog adapter for EmbedIO
     public class SerilogLogger : Swan.Logging.ILogger
     {
-        public LogLevel LogLevel { get; set; } = LogLevel.Info;
+        public Swan.Logging.LogLevel LogLevel { get; set; } = Swan.Logging.LogLevel.Info;
 
         public void Dispose() { }
 
@@ -157,22 +157,22 @@ namespace RevitMcpServer
         {
             switch (logEvent.MessageType)
             {
-                case LogLevel.Fatal:
+                case Swan.Logging.LogLevel.Fatal:
                     Serilog.Log.Fatal(logEvent.Exception, logEvent.Message);
                     break;
-                case LogLevel.Error:
+                case Swan.Logging.LogLevel.Error:
                     Serilog.Log.Error(logEvent.Exception, logEvent.Message);
                     break;
-                case LogLevel.Warning:
+                case Swan.Logging.LogLevel.Warning:
                     Serilog.Log.Warning(logEvent.Message);
                     break;
-                case LogLevel.Info:
+                case Swan.Logging.LogLevel.Info:
                     Serilog.Log.Information(logEvent.Message);
                     break;
-                case LogLevel.Debug:
+                case Swan.Logging.LogLevel.Debug:
                     Serilog.Log.Debug(logEvent.Message);
                     break;
-                case LogLevel.Trace:
+                case Swan.Logging.LogLevel.Trace:
                     Serilog.Log.Verbose(logEvent.Message);
                     break;
             }
@@ -180,7 +180,7 @@ namespace RevitMcpServer
     }
 
     // Serilog adapter for Microsoft.Extensions.Logging
-    public class SerilogLoggerFactory : ILoggerFactory
+    public class SerilogLoggerFactory : Microsoft.Extensions.Logging.ILoggerFactory
     {
         private readonly Serilog.ILogger _logger;
 
@@ -189,9 +189,9 @@ namespace RevitMcpServer
             _logger = logger;
         }
 
-        public void AddProvider(ILoggerProvider provider) { }
+        public void AddProvider(Microsoft.Extensions.Logging.ILoggerProvider provider) { }
 
-        public ILogger CreateLogger(string categoryName)
+        public Microsoft.Extensions.Logging.ILogger CreateLogger(string categoryName)
         {
             return new SerilogMicrosoftLogger(_logger.ForContext("SourceContext", categoryName));
         }
