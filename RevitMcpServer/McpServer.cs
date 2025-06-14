@@ -110,13 +110,13 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url)
         {
             var server = new WebServer(o => o
-                                .WithUrlPrefix(url)
-                                .WithMode(HttpListenerMode.EmbedIO))
-                                .WithLocalSessionManager()
-                                .WithCors()
-                                .WithWebApi("/api", m => m
-                                    .WithController(() => new BasicMcpController(_revitApp, _uiApp))
-                                    .WithController(() => new ElementController(_revitApiWrapper, _logger)));
+                                        .WithUrlPrefix(url)
+                                        .WithMode(HttpListenerMode.EmbedIO))
+                                        .WithLocalSessionManager()
+                                        .WithCors()
+                                        .WithWebApi("/api", m => m
+                                            .WithController(() => new BasicMcpController(_revitApp, _uiApp))
+                                            .WithController(() => new ElementController(_revitApiWrapper, _logger)));
 
             return server;
         }
@@ -160,7 +160,7 @@ namespace RevitMcpServer
     }
 
     // Basic controller for MCP operations
-    [Route("/api")]
+    [RoutePrefix("/api")]
     public class BasicMcpController : WebApiController
     {
         private readonly Application _revitApp;
