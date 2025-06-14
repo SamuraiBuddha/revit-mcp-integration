@@ -15,7 +15,7 @@ namespace RevitMcpServer.Controllers
     /// <summary>
     /// MCP endpoints for scan-to-BIM operations
     /// </summary>
-    public class ScanToBIMController : IMcpController
+    public partial class ScanToBIMController : IMcpController
     {
         private readonly UIApplication _uiApp;
         private readonly IPointCloudAnalyzer _pointCloudAnalyzer;
