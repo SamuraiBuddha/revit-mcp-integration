@@ -50,6 +50,20 @@
     <Compile Remove="ScanToBIM\**" />
     <Compile Remove="UndergroundUtilities\**" />
     <Compile Remove="Services\**" />
+    <!-- Exclude duplicate model files -->
+    <Compile Remove="Models\ScanToBIMExtensions.cs" />
+    <Compile Remove="Models\UndergroundUtilityModels.cs" />
+    <Compile Remove="Models\DetectedMEPElement.cs" />
+    <Compile Remove="Models\DetectedPipe.cs" />
+    <Compile Remove="Models\ScanToBIMModels.cs" />
+    <Compile Remove="Models\UndergroundUtilityData.cs" />
+    <Compile Remove="Models\UndergroundModels.cs" />
+    <Compile Remove="Models\BatchCreationSettings.cs" />
+    <Compile Remove="Models\ClashDetectionSettings.cs" />
+    <Compile Remove="Models\ClearanceMatrix.cs" />
+    <Compile Remove="Models\CorridorSettings.cs" />
+    <Compile Remove="Models\NetworkCreationSettings.cs" />
+    <!-- Mark excluded files as None -->
     <None Include="Controllers\DynamoController.cs" />
     <None Include="Controllers\ScanToBIMController.cs" />
     <None Include="Controllers\ScanToBIMControllerHelpers.cs" />
@@ -57,5 +71,17 @@
     <None Include="ScanToBIM\**" />
     <None Include="UndergroundUtilities\**" />
     <None Include="Services\**" />
+    <None Include="Models\ScanToBIMExtensions.cs" />
+    <None Include="Models\UndergroundUtilityModels.cs" />
+    <None Include="Models\DetectedMEPElement.cs" />
+    <None Include="Models\DetectedPipe.cs" />
+    <None Include="Models\ScanToBIMModels.cs" />
+    <None Include="Models\UndergroundUtilityData.cs" />
+    <None Include="Models\UndergroundModels.cs" />
+    <None Include="Models\BatchCreationSettings.cs" />
+    <None Include="Models\ClashDetectionSettings.cs" />
+    <None Include="Models\ClearanceMatrix.cs" />
+    <None Include="Models\CorridorSettings.cs" />
+    <None Include="Models\NetworkCreationSettings.cs" />
   </ItemGroup>
 </Project>
