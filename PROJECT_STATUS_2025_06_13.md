@@ -6,29 +6,30 @@
 1. **Fixed IScanToRevitConverter.cs** - Added missing `using System;` directive for Exception type
 2. **Fixed UndergroundUtilitiesEngine.cs** - Resolved ambiguous `DetectedPipe` references by fully qualifying them as `RevitMcpServer.Models.DetectedPipe`
 3. **Fixed PointCloudAnalyzer.cs** - Resolved `MEPSystemType` ambiguity by fully qualifying as `RevitMcpServer.Models.MEPSystemType`
+4. **Fixed Framework Compatibility (June 13, Session 2)**:
+   - Replaced ASP.NET Core packages with EmbedIO for .NET Framework compatibility
+   - Updated RevitMcpServer.csproj to remove incompatible dependencies
+   - Rewrote McpServer.cs to use EmbedIO's WebServer instead of ASP.NET Core
+   - Implemented proper controller pattern using EmbedIO's WebApiController
 
 ### Remaining Build Errors (from most recent log)
-The project is targeting .NET Framework 4.8 but using some ASP.NET Core packages, causing compatibility issues:
-
-1. **Missing HTTP types** in McpServer.cs:
-   - `HttpContext` type not found
-   - `RequestDelegate` type not found
-   - Need to add proper ASP.NET references or switch to .NET Core
-
-2. **Missing MEP types**:
+1. **Missing MEP types**:
    - `Pipe` type not found in multiple files
    - `Duct` type not found
    - `Conduit` and `CableTray` are inaccessible due to protection level
    - These are Revit API types that need proper namespace imports
 
-3. **Ambiguous references** still remaining:
+2. **Ambiguous references** still remaining:
    - `IntersectionAnalysis` ambiguous in ScanToBIMController.cs
    - `MEPSystemType` ambiguous in IScanToRevitConverter.cs and ScanToRevitConverter.cs
 
-4. **Method signature mismatches**:
+3. **Method signature mismatches**:
    - `CreatePipesFromCenterlines` return type mismatch
    - `GenerateFittingAtIntersection` not implemented
    - Interface implementation issues in UndergroundUtilitiesEngine and PointCloudAnalyzer
+
+4. **Missing using directives**:
+   - RevitApiWrapper.cs needs `using System.Threading;` for ManualResetEvent
 
 ## Key Project Context
 
@@ -73,18 +74,39 @@ The project is targeting .NET Framework 4.8 but using some ASP.NET Core packages
 - Performance optimizations for WebGL rendering
 - Container orchestration patterns
 
+## Progress Made (June 13, Session 2)
+
+### Framework Compatibility Resolution
+**Decision**: Stayed with .NET Framework 4.8 and replaced ASP.NET Core with EmbedIO
+- Reason: Revit 2024 requires .NET Framework 4.8
+- EmbedIO provides lightweight HTTP server functionality compatible with .NET Framework
+- Maintains ability to run web API inside Revit plugin
+
+### Key Changes Implemented
+1. **RevitMcpServer.csproj**:
+   - Removed all ASP.NET Core package references
+   - Added EmbedIO v3.5.2 for HTTP server functionality
+   - Added System.Net.Http and System.Web references
+   - Kept Serilog for logging and Newtonsoft.Json for serialization
+
+2. **McpServer.cs**:
+   - Replaced ASP.NET Core's WebHost with EmbedIO's WebServer
+   - Implemented proper controller routing using EmbedIO patterns
+   - Created SerilogLogger adapter for EmbedIO logging
+   - Added base McpController with sample endpoints
+   - Used CancellationTokenSource for proper shutdown handling
+
 ## Next Steps for Resolution
 
-1. **Decide on Framework**:
-   - Option A: Migrate to .NET Core/5+ for better cross-platform support
-   - Option B: Stay on .NET Framework 4.8 and use traditional ASP.NET
-
-2. **Fix Remaining Namespace Issues**:
+1. **Fix Remaining Namespace Issues**:
    ```csharp
    using Autodesk.Revit.DB.Plumbing; // For Pipe
    using Autodesk.Revit.DB.Mechanical; // For Duct
    using Autodesk.Revit.DB.Electrical; // For Conduit, CableTray
    ```
+
+2. **Add Missing Using Directives**:
+   - Add `using System.Threading;` to RevitApiWrapper.cs
 
 3. **Resolve Protection Level Issues**:
    - Conduit and CableTray might need different access patterns
@@ -95,10 +117,10 @@ The project is targeting .NET Framework 4.8 but using some ASP.NET Core packages
    - Ensure return types match interface definitions
 
 ## Key Files to Review Next Session
-- `/RevitMcpServer/McpServer.cs` - HTTP context issues
 - `/RevitMcpServer/Controllers/ScanToBIMController.cs` - Ambiguous references
 - `/RevitMcpServer/ScanToBIM/ScanToRevitConverter.cs` - MEPSystemType issues
-- `/RevitMcpServer/RevitMcpServer.csproj` - Project configuration
+- `/RevitMcpServer/RevitApiWrapper.cs` - Add missing using directive
+- `/RevitMcpServer/Models/ScanToBIMModels.cs` - Check MEP type definitions
 
 ## Repository Information
 - GitHub: https://github.com/SamuraiBuddha/revit-mcp-integration
@@ -110,3 +132,4 @@ The project is targeting .NET Framework 4.8 but using some ASP.NET Core packages
 - Push files immediately after creation
 - The project combines Revit API automation with modern web technologies
 - Focus on solving real-world BIM workflow problems you encounter daily
+- EmbedIO provides a clean path forward for .NET Framework compatibility
