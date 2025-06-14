@@ -10,14 +10,14 @@ using Serilog;
 using Serilog.Events;
 using Swan.Logging;
 using RevitMcpServer.Controllers;
+using Microsoft.Extensions.Logging;
 
 namespace RevitMcpServer
 {
     public class RevitMcpServerApp : IExternalApplication
     {
         private static WebServer _webServer;
-        private static Application _revitApp;
-        private static UIApplication _uiApp;
+        private static ControlledApplication _controlledApp;
         private static CancellationTokenSource _cancellationTokenSource;
         private static RevitApiWrapper _revitApiWrapper;
         private static Serilog.ILogger _logger;
@@ -32,18 +32,42 @@ namespace RevitMcpServer
             // Set up logging
             ConfigureLogging();
             
-            // Store Revit application references
-            _uiApp = new UIApplication(application.ControlledApplication);
-            _revitApp = _uiApp.Application;
-            _revitApiWrapper = new RevitApiWrapper(_revitApp, _uiApp);
+            // Store Revit application reference (ControlledApplication for now)
+            _controlledApp = application.ControlledApplication;
             
             Log.Information("RevitMcpServer starting up");
-            Log.Information($"Revit Version: {_revitApp.VersionNumber}");
+            Log.Information($"Revit Version: {_controlledApp.VersionNumber}");
             
-            // Start the MCP server
-            Task.Run(() => StartMcpServer());
+            // Subscribe to application initialized event to get full Application access
+            application.ControlledApplication.ApplicationInitialized += OnApplicationInitialized;
             
             return Result.Succeeded;
+        }
+
+        private void OnApplicationInitialized(object sender, Autodesk.Revit.DB.Events.ApplicationInitializedEventArgs e)
+        {
+            try
+            {
+                // Now we can get the full Application and UIApplication
+                var app = sender as Application;
+                if (app != null)
+                {
+                    var uiApp = new UIApplication(app);
+                    
+                    // Create logger adapter for Microsoft.Extensions.Logging
+                    var loggerFactory = new SerilogLoggerFactory(_logger);
+                    var msLogger = loggerFactory.CreateLogger<RevitApiWrapper>();
+                    
+                    _revitApiWrapper = new RevitApiWrapper(app, uiApp, msLogger);
+                    
+                    // Start the MCP server
+                    Task.Run(() => StartMcpServer(app, uiApp));
+                }
+            }
+            catch (Exception ex)
+            {
+                Log.Error(ex, "Error initializing RevitMcpServer");
+            }
         }
 
         public Result OnShutdown(UIControlledApplication application)
@@ -87,14 +111,14 @@ namespace RevitMcpServer
             Swan.Logging.Logger.RegisterLogger(new SerilogLogger());
         }
         
-        private void StartMcpServer()
+        private void StartMcpServer(Application app, UIApplication uiApp)
         {
             try
             {
                 _cancellationTokenSource = new CancellationTokenSource();
                 
                 // Create the web server
-                _webServer = CreateWebServer("http://localhost:7891/");
+                _webServer = CreateWebServer("http://localhost:7891/", app, uiApp);
                 
                 Log.Information("Starting MCP server on http://localhost:7891/");
                 
@@ -107,23 +131,19 @@ namespace RevitMcpServer
             }
         }
 
-        private WebServer CreateWebServer(string url)
+        private WebServer CreateWebServer(string url, Application app, UIApplication uiApp)
         {
             var server = new WebServer(o => o
-                                        .WithUrlPrefix(url)
-                                        .WithMode(HttpListenerMode.EmbedIO))
-                                        .WithLocalSessionManager()
-                                        .WithCors()
-                                        .WithWebApi("/api", m => m
-                                            .WithController(() => new BasicMcpController(_revitApp, _uiApp))
-                                            .WithController(() => new ElementController(_revitApiWrapper, _logger)));
+                                                .WithUrlPrefix(url)
+                                                .WithMode(HttpListenerMode.EmbedIO))
+                                                .WithLocalSessionManager()
+                                                .WithCors()
+                                                .WithWebApi("/api", m => m
+                                                    .WithController(() => new BasicMcpController(app, uiApp))
+                                                    .WithController(() => new ElementController(_revitApiWrapper, _logger)));
 
             return server;
         }
-        
-        // Access to Revit application for external classes
-        public UIApplication UIApplication => _uiApp;
-        public Application RevitApplication => _revitApp;
     }
 
     // Serilog adapter for EmbedIO
@@ -154,6 +174,70 @@ namespace RevitMcpServer
                     break;
                 case LogLevel.Trace:
                     Serilog.Log.Verbose(logEvent.Message);
+                    break;
+            }
+        }
+    }
+
+    // Serilog adapter for Microsoft.Extensions.Logging
+    public class SerilogLoggerFactory : ILoggerFactory
+    {
+        private readonly Serilog.ILogger _logger;
+
+        public SerilogLoggerFactory(Serilog.ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public void AddProvider(ILoggerProvider provider) { }
+
+        public ILogger CreateLogger(string categoryName)
+        {
+            return new SerilogMicrosoftLogger(_logger.ForContext("SourceContext", categoryName));
+        }
+
+        public void Dispose() { }
+    }
+
+    public class SerilogMicrosoftLogger : Microsoft.Extensions.Logging.ILogger
+    {
+        private readonly Serilog.ILogger _logger;
+
+        public SerilogMicrosoftLogger(Serilog.ILogger logger)
+        {
+            _logger = logger;
+        }
+
+        public IDisposable BeginScope<TState>(TState state) => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) => true;
+
+        public void Log<TState>(Microsoft.Extensions.Logging.LogLevel logLevel, EventId eventId, TState state, 
+            Exception exception, Func<TState, Exception, string> formatter)
+        {
+            if (formatter == null) return;
+
+            var message = formatter(state, exception);
+
+            switch (logLevel)
+            {
+                case Microsoft.Extensions.Logging.LogLevel.Trace:
+                    _logger.Verbose(exception, message);
+                    break;
+                case Microsoft.Extensions.Logging.LogLevel.Debug:
+                    _logger.Debug(exception, message);
+                    break;
+                case Microsoft.Extensions.Logging.LogLevel.Information:
+                    _logger.Information(exception, message);
+                    break;
+                case Microsoft.Extensions.Logging.LogLevel.Warning:
+                    _logger.Warning(exception, message);
+                    break;
+                case Microsoft.Extensions.Logging.LogLevel.Error:
+                    _logger.Error(exception, message);
+                    break;
+                case Microsoft.Extensions.Logging.LogLevel.Critical:
+                    _logger.Fatal(exception, message);
                     break;
             }
         }
