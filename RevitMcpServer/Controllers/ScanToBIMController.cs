@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using Autodesk.Revit.DB;
 using Autodesk.Revit.DB.Plumbing;
+using Autodesk.Revit.DB.Electrical;
+using Autodesk.Revit.DB.Mechanical;
 using Autodesk.Revit.UI;
 using RevitMcpServer.Models;
 using RevitMcpServer.ScanToBIM;
@@ -261,9 +263,9 @@ namespace RevitMcpServer.Controllers
             return collector;
         }
 
-        private List<Models.IntersectionAnalysis> FindPipeIntersections(List<Pipe> pipes)
+        private List<RevitMcpServer.Models.IntersectionAnalysis> FindPipeIntersections(List<Pipe> pipes)
         {
-            var intersections = new List<Models.IntersectionAnalysis>();
+            var intersections = new List<RevitMcpServer.Models.IntersectionAnalysis>();
             
             for (int i = 0; i < pipes.Count - 1; i++)
             {
