@@ -1,6 +1,6 @@
 # Revit MCP Integration - Project Status
 
-## Current Status (Updated: June 14, 2025, 6:56 AM)
+## Current Status (Updated: June 14, 2024, 3:09 PM UTC)
 
 ### 🎉 WEB SERVER ISSUE FIXED! 🎉
 - Fixed web server blocking issue in McpServer.cs
@@ -8,6 +8,15 @@
 - Server now runs asynchronously without interfering with Revit
 - Added improved logging to track server state changes
 - Ready for testing with endpoints
+
+### 🛠️ Debugging Tools Available
+- **WinDbg MCP Integration** - User has offered WinDbg MCP for advanced debugging
+  - Would be extremely useful for:
+    - Attaching to Revit process to debug HTTP endpoint issues
+    - Inspecting managed heap and object states
+    - Detecting deadlocks or threading issues
+    - Catching first-chance exceptions not appearing in logs
+  - Waiting for repository access details to set up integration
 
 ### Session Summary - Build and Runtime Fix Complete
 - ✅ Fixed all build errors from initial 112 errors
@@ -56,6 +65,12 @@
 
 5. **Test MCP endpoint**:
    - POST http://localhost:7891/api/element/mcp
+
+### If Endpoints Don't Respond
+- Set up WinDbg MCP integration for advanced debugging
+- Attach to Revit.exe process
+- Monitor HTTP request handling
+- Check for exceptions or deadlocks
 
 ### Once Core is Verified
 - Re-enable DynamoController
