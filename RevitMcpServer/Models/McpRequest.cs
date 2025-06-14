@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Text.Json.Serialization;
+using Newtonsoft.Json;
 
 namespace RevitMcpServer.Models
 {
@@ -8,10 +8,10 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class McpRequest
     {
-        [JsonPropertyName("action")]
+        [JsonProperty("action")]
         public string Action { get; set; }
 
-        [JsonPropertyName("parameters")]
+        [JsonProperty("parameters")]
         public Dictionary<string, object> Parameters { get; set; } = new Dictionary<string, object>();
     }
 
@@ -20,14 +20,14 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class McpResponse
     {
-        [JsonPropertyName("status")]
+        [JsonProperty("status")]
         public string Status { get; set; } = "success";
 
-        [JsonPropertyName("data")]
+        [JsonProperty("data")]
         public object Data { get; set; }
 
-        [JsonPropertyName("error")]
-        public string Error { get; set; }
+        [JsonProperty("error")]
+        public string ErrorMessage { get; set; }
 
         /// <summary>
         /// Create a successful response
@@ -49,7 +49,7 @@ namespace RevitMcpServer.Models
             return new McpResponse
             {
                 Status = "error",
-                Error = errorMessage
+                ErrorMessage = errorMessage
             };
         }
     }
@@ -59,16 +59,16 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class ElementRequest : McpRequest
     {
-        [JsonPropertyName("elementId")]
+        [JsonProperty("elementId")]
         public int ElementId { get; set; }
 
-        [JsonPropertyName("category")]
+        [JsonProperty("category")]
         public string Category { get; set; }
 
-        [JsonPropertyName("parameterName")]
+        [JsonProperty("parameterName")]
         public string ParameterName { get; set; }
 
-        [JsonPropertyName("parameterValue")]
+        [JsonProperty("parameterValue")]
         public string ParameterValue { get; set; }
     }
 
@@ -77,10 +77,10 @@ namespace RevitMcpServer.Models
     /// </summary>
     public class DynamoRequest : McpRequest
     {
-        [JsonPropertyName("scriptPath")]
+        [JsonProperty("scriptPath")]
         public string ScriptPath { get; set; }
 
-        [JsonPropertyName("parameters")]
+        [JsonProperty("parameters")]
         public new Dictionary<string, object> Parameters { get; set; }
     }
 }
