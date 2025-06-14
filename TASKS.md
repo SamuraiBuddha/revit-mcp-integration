@@ -10,6 +10,9 @@
 - [x] Fix duplicate model class definitions
 - [x] Fix RouteAttribute error (Route → RoutePrefix)
 - [x] Fix RoutePrefix error (EmbedIO doesn't use class-level routing)
+- [x] Fix ControlledApplication to Application conversion error
+- [x] Implement Microsoft.Extensions.Logging adapter for Serilog
+- [x] Fix RevitApiWrapper constructor with proper logger injection
 
 ## Current Tasks 🚧
 
@@ -49,3 +52,4 @@
 - Document changes in PROJECT_STATUS.md
 - Use Sequential Thinking MCP toolkit for complex problems
 - EmbedIO routing: base path in WithWebApi(), relative paths in Route attributes
+- Revit API requires ApplicationInitialized event for full Application access
