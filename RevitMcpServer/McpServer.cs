@@ -97,14 +97,14 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url)
         {
             var server = new WebServer(o => o
-                    .WithUrlPrefix(url)
-                    .WithMode(HttpListenerMode.EmbedIO))
-                .WithLocalSessionManager()
-                .WithCors()
-                .WithWebApi("/api", m => m
-                    .WithController(() => new McpController(_revitApp, _uiApp))
-                    .WithController(() => new ScanToBIMController(_revitApp, _uiApp))
-                    .WithController(() => new UndergroundUtilitiesController(_revitApp, _uiApp)));
+                        .WithUrlPrefix(url)
+                        .WithMode(HttpListenerMode.EmbedIO))
+                    .WithLocalSessionManager()
+                    .WithCors()
+                    .WithWebApi("/api", m => m
+                        .WithController(() => new McpController(_revitApp, _uiApp))
+                        .WithController(() => new ScanToBIMController(_revitApp, _uiApp))
+                        .WithController(() => new UndergroundUtilitiesController(_revitApp, _uiApp)));
 
             return server;
         }
@@ -176,7 +176,8 @@ namespace RevitMcpServer
         {
             try
             {
-                var requestBody = await HttpContext.GetRequestBodyAsStringAsync();
+                // In EmbedIO, use GetRequestBodyAsStringAsync() directly on the controller
+                var requestBody = await GetRequestBodyAsStringAsync();
                 // Process MCP request
                 return new { success = true, message = "Command executed" };
             }
