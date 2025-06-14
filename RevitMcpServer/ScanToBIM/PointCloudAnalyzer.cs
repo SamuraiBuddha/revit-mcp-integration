@@ -59,10 +59,10 @@ namespace RevitMcpServer.ScanToBIM
         /// <summary>
         /// Classifies MEP elements from detected objects
         /// </summary>
-        public async Task<MEPClassification> ClassifyMEPElements(string scanDataId)
+        public async Task<List<DetectedMEPElement>> ClassifyMEPElements(string scanDataId)
         {
             var objects = GetDetectedObjects(scanDataId);
-            var classification = new MEPClassification();
+            var classifiedElements = new List<DetectedMEPElement>();
             
             foreach (var obj in objects)
             {
@@ -70,7 +70,7 @@ namespace RevitMcpServer.ScanToBIM
                 {
                     case MEPType.HVACDuct:
                         // Rectangular patterns, larger cross-sections
-                        classification.HVACDucts.Add(new DetectedMEPElement
+                        classifiedElements.Add(new DetectedMEPElement
                         {
                             BoundingBox = obj.Bounds,
                             Type = "HVACDuct",
@@ -80,12 +80,12 @@ namespace RevitMcpServer.ScanToBIM
                         
                     case MEPType.Piping:
                         // Cylindrical, various sizes
-                        classification.Pipes.Add(ConvertToMEPElement(obj));
+                        classifiedElements.Add(ConvertToMEPElement(obj));
                         break;
                         
                     case MEPType.Conduit:
                         // Small cylinders, parallel runs
-                        classification.Conduits.Add(new DetectedMEPElement
+                        classifiedElements.Add(new DetectedMEPElement
                         {
                             Diameter = obj.EstimatedDiameter,
                             Route = ExtractConduitRoute(obj),
@@ -95,7 +95,7 @@ namespace RevitMcpServer.ScanToBIM
                         
                     case MEPType.CableTray:
                         // Ladder patterns
-                        classification.CableTrays.Add(new DetectedMEPElement
+                        classifiedElements.Add(new DetectedMEPElement
                         {
                             Width = obj.Bounds.Max.X - obj.Bounds.Min.X,
                             Type = IdentifyCableTrayType(obj),
@@ -105,13 +105,13 @@ namespace RevitMcpServer.ScanToBIM
                 }
             }
             
-            return classification;
+            return classifiedElements;
         }
 
         /// <summary>
         /// Analyzes confidence level for a detected pipe
         /// </summary>
-        public double AnalyzeConfidence(DetectedPipe pipe)
+        public async Task<double> AnalyzeConfidence(DetectedPipe pipe)
         {
             // Multi-factor confidence analysis
             var factors = new List<double>
@@ -121,6 +121,9 @@ namespace RevitMcpServer.ScanToBIM
                 AnalyzeMaterialConsistency(pipe),
                 AnalyzeContextualPlausibility(pipe)
             };
+            
+            // Simulate async operation
+            await Task.Delay(10);
             
             return factors.Average();
         }
@@ -397,17 +400,6 @@ namespace RevitMcpServer.ScanToBIM
         public double Confidence { get; set; }
         public PipeMaterial Material { get; set; }
         public RevitMcpServer.Models.MEPSystemType SystemType { get; set; }
-    }
-
-    public enum MEPSystemType
-    {
-        DomesticColdWater,
-        DomesticHotWater,
-        FireProtection,
-        Sanitary,
-        Storm,
-        HVAC,
-        Unknown
     }
 
     #endregion
