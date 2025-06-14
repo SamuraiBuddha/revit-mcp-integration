@@ -111,7 +111,7 @@ namespace RevitMcpServer
             Swan.Logging.Logger.RegisterLogger(new SerilogLogger());
         }
         
-        private void StartMcpServer(Application app, UIApplication uiApp)
+        private async void StartMcpServer(Application app, UIApplication uiApp)
         {
             try
             {
@@ -122,8 +122,10 @@ namespace RevitMcpServer
                 
                 Log.Information("Starting MCP server on http://localhost:7891/");
                 
-                // Start the server
-                _webServer.RunAsync(_cancellationTokenSource.Token).Wait();
+                // Start the server asynchronously without blocking
+                await _webServer.RunAsync(_cancellationTokenSource.Token);
+                
+                Log.Information("MCP server stopped");
             }
             catch (Exception ex)
             {
@@ -134,14 +136,17 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url, Application app, UIApplication uiApp)
         {
             var server = new WebServer(o => o
-                                                .WithUrlPrefix(url)
-                                                .WithMode(HttpListenerMode.EmbedIO))
-                                                .WithLocalSessionManager()
-                                                .WithCors()
-                                                .WithWebApi("/api", m => m
-                                                    .WithController(() => new BasicMcpController(app, uiApp))
-                                                    .WithController(() => new ElementController(_revitApiWrapper, _logger)));
+                                            .WithUrlPrefix(url)
+                                            .WithMode(HttpListenerMode.EmbedIO))
+                                            .WithLocalSessionManager()
+                                            .WithCors()
+                                            .WithWebApi("/api", m => m
+                                                .WithController(() => new BasicMcpController(app, uiApp))
+                                                .WithController(() => new ElementController(_revitApiWrapper, _logger)));
 
+            // Add event handlers for debugging
+            server.StateChanged += (s, e) => Log.Information($"WebServer state changed to: {e.NewState}");
+            
             return server;
         }
     }
