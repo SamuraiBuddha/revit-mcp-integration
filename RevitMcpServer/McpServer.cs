@@ -33,6 +33,9 @@ namespace RevitMcpServer
             _uiApp = new UIApplication(application.ControlledApplication);
             _revitApp = _uiApp.Application;
             
+            Log.Information("RevitMcpServer starting up");
+            Log.Information($"Revit Version: {_revitApp.VersionNumber}");
+            
             // Start the MCP server
             Task.Run(() => StartMcpServer());
             
@@ -43,6 +46,8 @@ namespace RevitMcpServer
         {
             try
             {
+                Log.Information("RevitMcpServer shutting down");
+                
                 // Stop the web server
                 _cancellationTokenSource?.Cancel();
                 _webServer?.Dispose();
@@ -83,7 +88,9 @@ namespace RevitMcpServer
                 _cancellationTokenSource = new CancellationTokenSource();
                 
                 // Create the web server
-                _webServer = CreateWebServer("http://localhost:5000/");
+                _webServer = CreateWebServer("http://localhost:7891/");
+                
+                Log.Information("Starting MCP server on http://localhost:7891/");
                 
                 // Start the server
                 _webServer.RunAsync(_cancellationTokenSource.Token).Wait();
@@ -97,14 +104,12 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url)
         {
             var server = new WebServer(o => o
-                        .WithUrlPrefix(url)
-                        .WithMode(HttpListenerMode.EmbedIO))
-                    .WithLocalSessionManager()
-                    .WithCors()
-                    .WithWebApi("/api", m => m
-                        .WithController(() => new McpController(_revitApp, _uiApp))
-                        .WithController(() => new ScanToBIMController(_revitApp, _uiApp))
-                        .WithController(() => new UndergroundUtilitiesController(_revitApp, _uiApp)));
+                                .WithUrlPrefix(url)
+                                .WithMode(HttpListenerMode.EmbedIO))
+                            .WithLocalSessionManager()
+                            .WithCors()
+                            .WithWebApi("/api", m => m
+                                .WithController(() => new BasicMcpController(_revitApp, _uiApp)));
 
             return server;
         }
@@ -147,44 +152,41 @@ namespace RevitMcpServer
         }
     }
 
-    // Base controller for MCP operations
-    [Route("/mcp")]
-    public class McpController : WebApiController
+    // Basic controller for MCP operations
+    [Route("/api")]
+    public class BasicMcpController : WebApiController
     {
         private readonly Application _revitApp;
         private readonly UIApplication _uiApp;
 
-        public McpController(Application revitApp, UIApplication uiApp)
+        public BasicMcpController(Application revitApp, UIApplication uiApp)
         {
             _revitApp = revitApp;
             _uiApp = uiApp;
         }
 
-        [Route(HttpVerbs.Get, "/info")]
-        public object GetInfo()
+        [Route(HttpVerbs.Get, "/health")]
+        public object GetHealth()
         {
             return new
             {
-                status = "running",
-                version = "1.0.0",
-                revitVersion = _revitApp.VersionNumber
+                status = "ok",
+                timestamp = DateTime.UtcNow,
+                service = "RevitMcpServer"
             };
         }
 
-        [Route(HttpVerbs.Post, "/execute")]
-        public async Task<object> Execute()
+        [Route(HttpVerbs.Get, "/revit/version")]
+        public object GetRevitVersion()
         {
-            try
+            return new
             {
-                // In EmbedIO, use GetRequestBodyAsStringAsync() directly on the controller
-                var requestBody = await GetRequestBodyAsStringAsync();
-                // Process MCP request
-                return new { success = true, message = "Command executed" };
-            }
-            catch (Exception ex)
-            {
-                return new { success = false, error = ex.Message };
-            }
+                versionNumber = _revitApp.VersionNumber,
+                versionName = _revitApp.VersionName,
+                versionBuild = _revitApp.VersionBuild,
+                subVersionNumber = _revitApp.SubVersionNumber,
+                language = _revitApp.Language.ToString()
+            };
         }
     }
 }
