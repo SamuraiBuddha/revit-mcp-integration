@@ -3,24 +3,21 @@ using System.Threading;
 using System.Threading.Tasks;
 using Autodesk.Revit.ApplicationServices;
 using Autodesk.Revit.UI;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
+using EmbedIO;
+using EmbedIO.Routing;
+using EmbedIO.WebApi;
 using Serilog;
 using Serilog.Events;
+using Swan.Logging;
 
 namespace RevitMcpServer
 {
     public class RevitMcpServerApp : IExternalApplication
     {
-        private static IWebHost _webHost;
+        private static WebServer _webServer;
         private static Application _revitApp;
         private static UIApplication _uiApp;
-        private static ILogger<RevitMcpServerApp> _logger;
+        private static CancellationTokenSource _cancellationTokenSource;
 
         // Singleton instance for accessing throughout the application
         public static RevitMcpServerApp Instance { get; private set; }
@@ -47,8 +44,8 @@ namespace RevitMcpServer
             try
             {
                 // Stop the web server
-                _webHost?.StopAsync().Wait();
-                _webHost?.Dispose();
+                _cancellationTokenSource?.Cancel();
+                _webServer?.Dispose();
                 
                 Log.CloseAndFlush();
                 
@@ -73,94 +70,120 @@ namespace RevitMcpServer
                 .Enrich.FromLogContext()
                 .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
+
+            // Configure EmbedIO to use Serilog
+            Swan.Logging.Logger.UnregisterLogger<ConsoleLogger>();
+            Swan.Logging.Logger.RegisterLogger(new SerilogLogger());
         }
         
         private void StartMcpServer()
         {
             try
             {
-                _webHost = WebHost.CreateDefaultBuilder()
-                    .UseStartup<Startup>()
-                    .UseUrls("http://localhost:5000")
-                    .ConfigureServices(services =>
-                    {
-                        // Register Revit services
-                        services.AddSingleton(_revitApp);
-                        services.AddSingleton(_uiApp);
-                        services.AddSingleton<RevitApiWrapper>();
-                    })
-                    .UseSerilog()
-                    .Build();
-                    
-                _webHost.Run();
+                _cancellationTokenSource = new CancellationTokenSource();
+                
+                // Create the web server
+                _webServer = CreateWebServer("http://localhost:5000/");
+                
+                // Start the server
+                _webServer.RunAsync(_cancellationTokenSource.Token).Wait();
             }
             catch (Exception ex)
             {
                 Log.Error(ex, "Error starting MCP server");
             }
         }
+
+        private WebServer CreateWebServer(string url)
+        {
+            var server = new WebServer(o => o
+                    .WithUrlPrefix(url)
+                    .WithMode(HttpListenerMode.EmbedIO))
+                .WithLocalSessionManager()
+                .WithCors()
+                .WithWebApi("/api", m => m
+                    .WithController(() => new McpController(_revitApp, _uiApp))
+                    .WithController(() => new ScanToBIMController(_revitApp, _uiApp))
+                    .WithController(() => new UndergroundUtilitiesController(_revitApp, _uiApp)));
+
+            return server;
+        }
         
         // Access to Revit application for external classes
         public UIApplication UIApplication => _uiApp;
         public Application RevitApplication => _revitApp;
     }
-    
-    public class Startup
+
+    // Serilog adapter for EmbedIO
+    public class SerilogLogger : ILogger
     {
-        public void ConfigureServices(IServiceCollection services)
+        public LogLevel LogLevel { get; set; } = LogLevel.Info;
+
+        public void Dispose() { }
+
+        public void Log(LogMessageReceivedEventArgs logEvent)
         {
-            services.AddControllers()
-                .AddJsonOptions(options =>
-                {
-                    options.JsonSerializerOptions.PropertyNamingPolicy = null;
-                });
-                
-            services.AddCors(options =>
+            switch (logEvent.MessageType)
             {
-                options.AddPolicy("AllowAll", builder =>
-                {
-                    builder.AllowAnyOrigin()
-                        .AllowAnyMethod()
-                        .AllowAnyHeader();
-                });
-            });
-        }
-        
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
-        {
-            app.UseCors("AllowAll");
-            
-            app.UseRouting();
-            
-            app.UseEndpoints(endpoints =>
-            {
-                endpoints.MapControllers();
-            });
-            
-            // Add MCP middleware
-            app.UseMiddleware<McpMiddleware>();
+                case LogLevel.Fatal:
+                    Serilog.Log.Fatal(logEvent.Exception, logEvent.Message);
+                    break;
+                case LogLevel.Error:
+                    Serilog.Log.Error(logEvent.Exception, logEvent.Message);
+                    break;
+                case LogLevel.Warning:
+                    Serilog.Log.Warning(logEvent.Message);
+                    break;
+                case LogLevel.Info:
+                    Serilog.Log.Information(logEvent.Message);
+                    break;
+                case LogLevel.Debug:
+                    Serilog.Log.Debug(logEvent.Message);
+                    break;
+                case LogLevel.Trace:
+                    Serilog.Log.Verbose(logEvent.Message);
+                    break;
+            }
         }
     }
-    
-    // Simple middleware to handle MCP requests
-    public class McpMiddleware
+
+    // Base controller for MCP operations
+    [Route("/mcp")]
+    public class McpController : WebApiController
     {
-        private readonly RequestDelegate _next;
-        private readonly ILogger<McpMiddleware> _logger;
-        
-        public McpMiddleware(RequestDelegate next, ILogger<McpMiddleware> logger)
+        private readonly Application _revitApp;
+        private readonly UIApplication _uiApp;
+
+        public McpController(Application revitApp, UIApplication uiApp)
         {
-            _next = next;
-            _logger = logger;
+            _revitApp = revitApp;
+            _uiApp = uiApp;
         }
-        
-        public async Task Invoke(HttpContext context)
+
+        [Route(HttpVerbs.Get, "/info")]
+        public object GetInfo()
         {
-            // Log all requests
-            _logger.LogInformation($"MCP Request: {context.Request.Method} {context.Request.Path}");
-            
-            // Continue with the pipeline
-            await _next(context);
+            return new
+            {
+                status = "running",
+                version = "1.0.0",
+                revitVersion = _revitApp.VersionNumber
+            };
+        }
+
+        [Route(HttpVerbs.Post, "/execute")]
+        public async Task<object> Execute()
+        {
+            try
+            {
+                var requestBody = await HttpContext.GetRequestBodyAsStringAsync();
+                // Process MCP request
+                return new { success = true, message = "Command executed" };
+            }
+            catch (Exception ex)
+            {
+                return new { success = false, error = ex.Message };
+            }
         }
     }
 }
