@@ -93,9 +93,15 @@ namespace RevitMcpServer
 
         private void ConfigureLogging()
         {
-            string logPath = System.IO.Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "RevitMcpServer", "logs", "revit-mcp-.log");
+            // Log to the GitHub repository folder for easy access during development
+            string logPath = @"C:\Users\JordanEhrig\Documents\GitHub\revit-mcp-integration\logs\revit-mcp-.log";
+            
+            // Ensure the logs directory exists
+            var logDir = System.IO.Path.GetDirectoryName(logPath);
+            if (!System.IO.Directory.Exists(logDir))
+            {
+                System.IO.Directory.CreateDirectory(logDir);
+            }
                 
             _logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
@@ -105,6 +111,8 @@ namespace RevitMcpServer
                 .CreateLogger();
 
             Log.Logger = _logger;
+            
+            Log.Information($"Logging configured. Log file: {logPath}");
 
             // Configure EmbedIO to use Serilog
             Swan.Logging.Logger.UnregisterLogger<ConsoleLogger>();
