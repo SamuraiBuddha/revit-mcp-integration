@@ -1,18 +1,22 @@
 # Revit MCP Integration - Project Status
 
-## Current Status (Updated: June 14, 2025, 6:37 AM)
+## Current Status (Updated: June 14, 2025, 6:50 AM)
 
-### 🎉 BUILD SUCCESSFUL & DEPLOYMENT FIXED! 🎉
-- Build completed with 0 errors, 7 warnings
-- Deployment script path issue fixed
-- Ready for full deployment and testing
+### 🎉 WEB SERVER ISSUE FIXED! 🎉
+- Fixed web server blocking issue in McpServer.cs
+- Removed problematic `.Wait()` call that was blocking Revit's thread
+- Server now runs asynchronously without interfering with Revit
+- Added improved logging to track server state changes
+- Ready for testing with endpoints
 
-### Session Summary - Complete Success
-- Fixed all build errors from initial 112 errors
-- Fixed namespace conflicts
-- Build succeeded with only non-blocking warnings
-- Fixed deployment script (removed incorrect net48 subdirectory)
-- Project is ready for deployment to Revit
+### Session Summary - Build and Runtime Fix Complete
+- ✅ Fixed all build errors from initial 112 errors
+- ✅ Fixed namespace conflicts
+- ✅ Build succeeded with only non-blocking warnings
+- ✅ Fixed deployment script (removed incorrect net48 subdirectory)
+- ✅ Fixed web server blocking issue (removed .Wait() call)
+- ✅ Added server state change logging
+- ✅ Project is ready for deployment and endpoint testing
 
 ### Build Warnings (Non-blocking)
 1. **Async methods without await** (CS1998) - 3 occurrences in ElementController.cs
@@ -22,10 +26,10 @@
    - ElementId.IntegerValue → should use ElementId.Value
    - These work in Revit 2024 but should be updated for future compatibility
 
-### Deployment Fix Applied
-- Build output is in `bin\Release\` (not `bin\Release\net48\`)
-- Updated build-and-deploy.bat to use correct paths
-- Ready to copy DLLs to Revit addins folder
+### Server Fix Applied
+- Changed `_webServer.RunAsync(...).Wait()` to `await _webServer.RunAsync(...)`
+- Made StartMcpServer method async void to prevent blocking
+- Added StateChanged event handler for debugging server state
 
 ## Next Steps
 
@@ -37,13 +41,18 @@
 
 2. **Start Revit 2024 and verify addon loads**
 
-3. **Test basic endpoints**:
+3. **Check logs for server startup**:
+   - Look in `%LOCALAPPDATA%\RevitMcpServer\logs`
+   - Verify "Starting MCP server on http://localhost:7891/" message
+   - Check for any error messages
+
+4. **Test basic endpoints**:
    - GET http://localhost:7891/api/health
    - GET http://localhost:7891/api/revit/version
    - GET http://localhost:7891/api/element/category/{categoryName}
    - GET http://localhost:7891/api/element/type/{typeName}
 
-4. **Test MCP endpoint**:
+5. **Test MCP endpoint**:
    - POST http://localhost:7891/api/element/mcp
 
 ### Once Core is Verified
@@ -61,7 +70,7 @@
 ### Current Architecture
 ```
 Minimal POC Build (WORKING):
-├── McpServer.cs (with proper initialization and logging)
+├── McpServer.cs (fixed async startup and logging)
 ├── ElementController.cs (basic CRUD with EmbedIO)
 ├── RevitApiWrapper.cs (utilities)
 ├── Models/ (core data structures only)
@@ -83,7 +92,8 @@ Excluded (for now):
 - ✅ Implemented logging adapters
 - ✅ Successfully built the project
 - ✅ Fixed deployment script paths
-- ✅ Ready for testing!
+- ✅ Fixed web server blocking issue
+- ✅ Ready for endpoint testing!
 
 ### Technical Notes
 - **Build Location**: DLLs are in `bin\Release\` (not in a net48 subdirectory)
