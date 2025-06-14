@@ -71,30 +71,4 @@ namespace RevitMcpServer.ScanToBIM
         public int TotalElementsCreated => 
             Ducts.Count + Pipes.Count + Conduits.Count + CableTrays.Count + Fittings.Count;
     }
-
-    /// <summary>
-    /// Utility network creation result
-    /// </summary>
-    public class UtilityNetworkResult
-    {
-        public List<Autodesk.Revit.DB.Plumbing.Pipe> CreatedPipes { get; set; } = new List<Autodesk.Revit.DB.Plumbing.Pipe>();
-        public List<FamilyInstance> CreatedStructures { get; set; } = new List<FamilyInstance>();
-        public List<FamilyInstance> CreatedFittings { get; set; } = new List<FamilyInstance>();
-        public List<CreationError> Errors { get; set; } = new List<CreationError>();
-        
-        public bool HasErrors => Errors.Count > 0;
-        public int TotalElementsCreated => 
-            CreatedPipes.Count + CreatedStructures.Count + CreatedFittings.Count;
-    }
-
-    /// <summary>
-    /// Creation error information
-    /// </summary>
-    public class CreationError
-    {
-        public string ErrorMessage { get; set; }
-        public string ElementType { get; set; }
-        public UndergroundUtilityData UtilityData { get; set; }
-        public Exception Exception { get; set; }
-    }
 }
