@@ -160,7 +160,6 @@ namespace RevitMcpServer
     }
 
     // Basic controller for MCP operations
-    [RoutePrefix("/api")]
     public class BasicMcpController : WebApiController
     {
         private readonly Application _revitApp;
@@ -172,7 +171,7 @@ namespace RevitMcpServer
             _uiApp = uiApp;
         }
 
-        [Route(HttpVerbs.Get, "/health")]
+        [Route(HttpVerbs.Get, "health")]
         public object GetHealth()
         {
             return new
@@ -183,7 +182,7 @@ namespace RevitMcpServer
             };
         }
 
-        [Route(HttpVerbs.Get, "/revit/version")]
+        [Route(HttpVerbs.Get, "revit/version")]
         public object GetRevitVersion()
         {
             return new
