@@ -47,7 +47,7 @@ namespace RevitMcpServer.Controllers
             return pipes;
         }
 
-        private IntersectionAnalysis AnalyzePipeIntersection(Pipe pipe1, Pipe pipe2)
+        private RevitMcpServer.Models.IntersectionAnalysis AnalyzePipeIntersection(Pipe pipe1, Pipe pipe2)
         {
             // Get pipe curves
             var curve1 = (pipe1.Location as LocationCurve)?.Curve;
@@ -68,7 +68,7 @@ namespace RevitMcpServer.Controllers
             var dir2 = (curve2 as Line)?.Direction ?? XYZ.Zero;
             var angle = Math.Acos(dir1.DotProduct(dir2)) * 180 / Math.PI;
             
-            return new IntersectionAnalysis
+            return new RevitMcpServer.Models.IntersectionAnalysis
             {
                 Pipe1 = pipe1,
                 Pipe2 = pipe2,
