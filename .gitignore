@@ -1,0 +1,61 @@
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio temp files
+.vs/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+
+# NuGet Packages
+*.nupkg
+packages/
+*.nuget.props
+*.nuget.targets
+
+# Build Results
+*.dll
+*.exe
+*.pdb
+*.cache
+*.log
+
+# Revit backup files
+*.rws
+*.rvt.*.rvt
+
+# Local config files
+*.config.local
+*.settings.local
+
+# Test results
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+
+# Temporary files
+*.tmp
+*.temp
+~$*
+
+# OS generated files
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Revit MCP specific logs
+logs/
+*.log
+
+# Ignore build output in repository (keep in Revit addins folder only)
+RevitMcpServer/bin/
+RevitMcpServer/obj/
