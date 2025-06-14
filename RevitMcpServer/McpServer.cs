@@ -9,6 +9,7 @@ using EmbedIO.WebApi;
 using Serilog;
 using Serilog.Events;
 using Swan.Logging;
+using RevitMcpServer.Controllers;
 
 namespace RevitMcpServer
 {
@@ -104,12 +105,13 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url)
         {
             var server = new WebServer(o => o
-                                .WithUrlPrefix(url)
-                                .WithMode(HttpListenerMode.EmbedIO))
-                            .WithLocalSessionManager()
-                            .WithCors()
-                            .WithWebApi("/api", m => m
-                                .WithController(() => new BasicMcpController(_revitApp, _uiApp)));
+                                    .WithUrlPrefix(url)
+                                    .WithMode(HttpListenerMode.EmbedIO))
+                                .WithLocalSessionManager()
+                                .WithCors()
+                                .WithWebApi("/api", m => m
+                                    .WithController(() => new BasicMcpController(_revitApp, _uiApp))
+                                    .WithController(() => new ElementController(_revitApp, _uiApp)));
 
             return server;
         }
