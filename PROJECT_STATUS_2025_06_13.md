@@ -11,6 +11,10 @@
    - Updated RevitMcpServer.csproj to remove incompatible dependencies
    - Rewrote McpServer.cs to use EmbedIO's WebServer instead of ASP.NET Core
    - Implemented proper controller pattern using EmbedIO's WebApiController
+5. **Fixed ScanToBIMControllerHelpers.cs (June 13, Session 3)**:
+   - Resolved ambiguous `IntersectionAnalysis` reference by fully qualifying as `RevitMcpServer.Models.IntersectionAnalysis`
+6. **Fixed IScanToRevitConverter.cs (June 13, Session 3)**:
+   - Resolved `MEPSystemType` ambiguity by fully qualifying as `RevitMcpServer.Models.MEPSystemType` in MEPCreationSettings
 
 ### Remaining Build Errors (from most recent log)
 1. **Missing MEP types**:
@@ -20,16 +24,18 @@
    - These are Revit API types that need proper namespace imports
 
 2. **Ambiguous references** still remaining:
-   - `IntersectionAnalysis` ambiguous in ScanToBIMController.cs
-   - `MEPSystemType` ambiguous in IScanToRevitConverter.cs and ScanToRevitConverter.cs
+   - `MEPSystemType` ambiguous in ScanToRevitConverter.cs (line 393)
 
 3. **Method signature mismatches**:
    - `CreatePipesFromCenterlines` return type mismatch
    - `GenerateFittingAtIntersection` not implemented
    - Interface implementation issues in UndergroundUtilitiesEngine and PointCloudAnalyzer
 
-4. **Missing using directives**:
-   - RevitApiWrapper.cs needs `using System.Threading;` for ManualResetEvent
+4. **Missing type definitions**:
+   - `FittingResolver` class not found
+   - `CylindricalObject` type not found
+   - `StructuralElement` type not found
+   - `MLService` class not found
 
 ## Key Project Context
 
@@ -96,31 +102,44 @@
    - Added base McpController with sample endpoints
    - Used CancellationTokenSource for proper shutdown handling
 
+## Progress Made (June 13, Session 3)
+
+### Namespace Disambiguation
+1. **Fixed ScanToBIMControllerHelpers.cs**:
+   - Resolved ambiguous `IntersectionAnalysis` reference
+   - Fully qualified as `RevitMcpServer.Models.IntersectionAnalysis` in method signature
+
+2. **Fixed IScanToRevitConverter.cs**:
+   - Resolved `MEPSystemType` ambiguity in MEPCreationSettings
+   - Fully qualified as `RevitMcpServer.Models.MEPSystemType`
+
+3. **Discovered Root Cause**:
+   - `MEPSystemType` enum is defined in `RevitMcpServer.Models` namespace (DetectedPipe.cs)
+   - Conflicts with `Autodesk.Revit.DB.MEPSystemType`
+   - Solution: Always fully qualify the namespace for clarity
+
 ## Next Steps for Resolution
 
-1. **Fix Remaining Namespace Issues**:
-   ```csharp
-   using Autodesk.Revit.DB.Plumbing; // For Pipe
-   using Autodesk.Revit.DB.Mechanical; // For Duct
-   using Autodesk.Revit.DB.Electrical; // For Conduit, CableTray
-   ```
+1. **Fix Remaining MEPSystemType Ambiguity**:
+   - Update ScanToRevitConverter.cs line 393 to use fully qualified namespace
 
 2. **Add Missing Using Directives**:
-   - Add `using System.Threading;` to RevitApiWrapper.cs
+   - Ensure all files have proper MEP namespace imports where needed
 
-3. **Resolve Protection Level Issues**:
-   - Conduit and CableTray might need different access patterns
-   - May need to use factory methods instead of direct instantiation
+3. **Create Missing Types**:
+   - Define `FittingResolver` class
+   - Define `CylindricalObject` type
+   - Define `StructuralElement` type
+   - Define `MLService` class
 
 4. **Fix Method Implementations**:
    - Implement missing interface methods
    - Ensure return types match interface definitions
 
 ## Key Files to Review Next Session
-- `/RevitMcpServer/Controllers/ScanToBIMController.cs` - Ambiguous references
-- `/RevitMcpServer/ScanToBIM/ScanToRevitConverter.cs` - MEPSystemType issues
-- `/RevitMcpServer/RevitApiWrapper.cs` - Add missing using directive
-- `/RevitMcpServer/Models/ScanToBIMModels.cs` - Check MEP type definitions
+- `/RevitMcpServer/ScanToBIM/ScanToRevitConverter.cs` - MEPSystemType issue at line 393
+- `/RevitMcpServer/ScanToBIM/PointCloudAnalyzer.cs` - Missing type definitions
+- `/RevitMcpServer/UndergroundUtilities/UndergroundUtilitiesEngine.cs` - Interface implementation issues
 
 ## Repository Information
 - GitHub: https://github.com/SamuraiBuddha/revit-mcp-integration
