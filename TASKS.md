@@ -9,6 +9,7 @@
 - [x] Fix ILogger ambiguity issues
 - [x] Fix duplicate model class definitions
 - [x] Fix RouteAttribute error (Route → RoutePrefix)
+- [x] Fix RoutePrefix error (EmbedIO doesn't use class-level routing)
 
 ## Current Tasks 🚧
 
@@ -47,3 +48,4 @@
 - Test thoroughly before adding complexity
 - Document changes in PROJECT_STATUS.md
 - Use Sequential Thinking MCP toolkit for complex problems
+- EmbedIO routing: base path in WithWebApi(), relative paths in Route attributes
