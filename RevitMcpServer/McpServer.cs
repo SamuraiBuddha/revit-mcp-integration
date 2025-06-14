@@ -19,6 +19,8 @@ namespace RevitMcpServer
         private static Application _revitApp;
         private static UIApplication _uiApp;
         private static CancellationTokenSource _cancellationTokenSource;
+        private static RevitApiWrapper _revitApiWrapper;
+        private static Serilog.ILogger _logger;
 
         // Singleton instance for accessing throughout the application
         public static RevitMcpServerApp Instance { get; private set; }
@@ -33,6 +35,7 @@ namespace RevitMcpServer
             // Store Revit application references
             _uiApp = new UIApplication(application.ControlledApplication);
             _revitApp = _uiApp.Application;
+            _revitApiWrapper = new RevitApiWrapper(_revitApp, _uiApp);
             
             Log.Information("RevitMcpServer starting up");
             Log.Information($"Revit Version: {_revitApp.VersionNumber}");
@@ -70,12 +73,14 @@ namespace RevitMcpServer
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "RevitMcpServer", "logs", "revit-mcp-.log");
                 
-            Log.Logger = new LoggerConfiguration()
+            _logger = new LoggerConfiguration()
                 .MinimumLevel.Debug()
                 .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
                 .Enrich.FromLogContext()
                 .WriteTo.File(logPath, rollingInterval: RollingInterval.Day)
                 .CreateLogger();
+
+            Log.Logger = _logger;
 
             // Configure EmbedIO to use Serilog
             Swan.Logging.Logger.UnregisterLogger<ConsoleLogger>();
@@ -105,13 +110,13 @@ namespace RevitMcpServer
         private WebServer CreateWebServer(string url)
         {
             var server = new WebServer(o => o
-                                    .WithUrlPrefix(url)
-                                    .WithMode(HttpListenerMode.EmbedIO))
+                                .WithUrlPrefix(url)
+                                .WithMode(HttpListenerMode.EmbedIO))
                                 .WithLocalSessionManager()
                                 .WithCors()
                                 .WithWebApi("/api", m => m
                                     .WithController(() => new BasicMcpController(_revitApp, _uiApp))
-                                    .WithController(() => new ElementController(_revitApp, _uiApp)));
+                                    .WithController(() => new ElementController(_revitApiWrapper, _logger)));
 
             return server;
         }
@@ -122,7 +127,7 @@ namespace RevitMcpServer
     }
 
     // Serilog adapter for EmbedIO
-    public class SerilogLogger : ILogger
+    public class SerilogLogger : Swan.Logging.ILogger
     {
         public LogLevel LogLevel { get; set; } = LogLevel.Info;
 
