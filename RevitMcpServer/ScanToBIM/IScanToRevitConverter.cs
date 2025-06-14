@@ -53,7 +53,7 @@ namespace RevitMcpServer.ScanToBIM
         public bool AutoRoute { get; set; } = true;
         public bool AutoSize { get; set; } = true;
         public double DefaultSlope { get; set; } = 0.01; // 1% slope
-        public Dictionary<Models.MEPSystemType, string> SystemMappings { get; set; } = new Dictionary<Models.MEPSystemType, string>();
+        public Dictionary<RevitMcpServer.Models.MEPSystemType, string> SystemMappings { get; set; } = new Dictionary<RevitMcpServer.Models.MEPSystemType, string>();
     }
 
     /// <summary>
