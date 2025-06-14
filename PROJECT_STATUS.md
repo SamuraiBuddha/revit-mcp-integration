@@ -1,21 +1,15 @@
 # Revit MCP Integration - Project Status
 
-## Current Status (Updated: June 14, 2025, 5:45 AM)
+## Current Status (Updated: June 14, 2025, 5:52 AM)
 
-### Session Summary - Fixed Last Build Error
-- Fixed RouteAttribute error in McpServer.cs by changing [Route("/api")] to [RoutePrefix("/api")]
-- All 112 compilation errors from previous session have been resolved
-- The project should now compile successfully for the minimal POC build
+### Session Summary - Fixed EmbedIO Routing
+- Fixed RoutePrefix error - EmbedIO doesn't use class-level routing attributes
+- Removed [RoutePrefix("/api")] attribute from BasicMcpController
+- Changed routes to use relative paths (removed leading slashes)
+- The base path "/api" is configured in WithWebApi() method, not via attributes
 
 ### Files Modified This Session
-1. **McpServer.cs** - Fixed RouteAttribute by using RoutePrefix for class-level routing
-
-### Previous Session Work
-1. **RevitMcpServer.csproj** - Excluded duplicate model files
-2. **ElementController.cs** - Converted from ASP.NET Core to EmbedIO
-3. **ElementModel.cs** - Changed to use Newtonsoft.Json
-4. **McpRequest.cs** - Changed to use Newtonsoft.Json, fixed duplicate Error property
-5. **McpServer.cs** - Fixed ILogger ambiguity and controller initialization
+1. **McpServer.cs** - Removed RoutePrefix attribute and adjusted routes to relative paths
 
 ### Build Status
 ✅ **ALL BUILD ERRORS RESOLVED** - The project should now compile successfully!
@@ -24,7 +18,7 @@
 - ✅ Resolved namespace conflicts
 - ✅ Updated JSON serialization attributes
 - ✅ Fixed dependency injection for controllers
-- ✅ Fixed RouteAttribute for EmbedIO compatibility
+- ✅ Fixed EmbedIO routing (no class-level attributes needed)
 
 ## Next Session Pickup Point
 
@@ -53,6 +47,7 @@
 - **MINIMAL_BUILD_CONFIG.md** - What's included/excluded in POC
 - **README.md** - Project overview and goals
 - **PROJECT_STATUS_2025_06_13.md** - Detailed history and context
+- **TASKS.md** - Task tracking and checklist
 
 ### Important Reminders
 - **Use Sequential Thinking MCP toolkit** for complex problem-solving
@@ -82,7 +77,13 @@ Excluded (for now):
 - ✅ Duplicate model classes excluded from build
 - ✅ ILogger ambiguity resolved
 - ✅ Controller dependencies properly configured
-- ✅ RouteAttribute error fixed (Route → RoutePrefix)
+- ✅ EmbedIO routing fixed (no RoutePrefix, use relative paths)
+
+### EmbedIO Routing Notes
+- Base path is set in `WithWebApi("/api", m => m...)`
+- Controllers don't need class-level routing attributes
+- Method routes should be relative (no leading slash)
+- Example: `[Route(HttpVerbs.Get, "health")]` maps to `/api/health`
 
 ## Repository Information
 - **GitHub**: https://github.com/SamuraiBuddha/revit-mcp-integration
