@@ -26,9 +26,9 @@ echo.
 echo Copying files to Revit addins folder...
 echo Destination: %REVIT_ADDINS%
 
-REM Copy the DLL and dependencies
-xcopy /Y "bin\Release\net48\*.dll" "%REVIT_ADDINS%\"
-xcopy /Y "bin\Release\net48\*.pdb" "%REVIT_ADDINS%\"
+REM Copy the DLL and dependencies (updated path - no net48 subdirectory)
+xcopy /Y "bin\Release\*.dll" "%REVIT_ADDINS%\"
+xcopy /Y "bin\Release\*.pdb" "%REVIT_ADDINS%\"
 
 REM Copy the .addin manifest file
 copy /Y "RevitMcpServer.addin" "%REVIT_ADDINS%\"
