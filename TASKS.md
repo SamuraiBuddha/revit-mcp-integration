@@ -19,12 +19,18 @@
 - [x] Successfully build the project (0 errors, 7 warnings)
 - [x] Fix deployment script path issue (removed net48 subdirectory)
 
+### Web Server Fix (June 14, 2025)
+- [x] Fix web server blocking issue (removed .Wait() call)
+- [x] Make StartMcpServer async to prevent thread blocking
+- [x] Add server state change logging for debugging
+
 ### 🎉 BUILD SUCCESSFUL! Ready for Testing!
 
 ## Current Tasks 🚧
 
 ### Testing Phase
 - [ ] Run updated build-and-deploy.bat to compile and deploy
+- [ ] Check logs for server startup confirmation
 - [ ] Test basic health endpoint: GET http://localhost:7891/api/health
 - [ ] Test Revit version endpoint: GET http://localhost:7891/api/revit/version
 - [ ] Test element endpoints:
@@ -66,3 +72,4 @@
 - EmbedIO routing: base path in WithWebApi(), relative paths in Route attributes
 - Revit API requires ApplicationInitialized event for full Application access
 - Use fully qualified names when namespace conflicts occur
+- Web server runs asynchronously without blocking Revit's thread
