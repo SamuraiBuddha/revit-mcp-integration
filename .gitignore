@@ -38,6 +38,11 @@ packages/
 *.config.local
 *.settings.local
 
+# Environment variables
+.env
+.env.local
+*.env
+
 # Test results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -59,3 +64,9 @@ logs/
 # Ignore build output in repository (keep in Revit addins folder only)
 RevitMcpServer/bin/
 RevitMcpServer/obj/
+
+# Node.js (for MCP bridge components)
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
