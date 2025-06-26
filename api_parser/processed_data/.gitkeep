@@ -1,0 +1,35 @@
+# Processed Data Directory
+
+This directory contains the output from the Revit API parser. Files will be automatically generated here when you run the parser.
+
+## Generated Files
+
+After running the parser, you'll find:
+
+### revit_api_raw.json
+Complete parsed data from all HTML files, including:
+- Full API documentation structure
+- All extracted metadata
+- Original formatting preserved
+
+### revit_api_training.json
+Q&A pairs formatted for AI training:
+- Automatically generated questions and answers
+- Ready for fine-tuning language models
+- Covers various aspects of each API element
+
+### processing_stats.json
+Statistics about the parsing process:
+- Number of files processed
+- Number of Q&A pairs generated
+- List of unique namespaces found
+- List of assemblies encountered
+- Error count and details
+
+## Usage
+
+These files can be used for:
+1. Training AI models on Revit API knowledge
+2. Building searchable API documentation
+3. Creating automated code generation tools
+4. Developing intelligent code completion systems
