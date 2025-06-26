@@ -51,21 +51,9 @@
         "net48": {
           "targetAlias": "net48",
           "dependencies": {
-            "Microsoft.AspNetCore": {
+            "EmbedIO": {
               "target": "Package",
-              "version": "[2.2.0, )"
-            },
-            "Microsoft.AspNetCore.Mvc.Core": {
-              "target": "Package",
-              "version": "[2.2.5, )"
-            },
-            "Microsoft.AspNetCore.Mvc.Formatters.Json": {
-              "target": "Package",
-              "version": "[2.2.0, )"
-            },
-            "Microsoft.Extensions.Hosting": {
-              "target": "Package",
-              "version": "[6.0.1, )"
+              "version": "[3.5.2, )"
             },
             "Newtonsoft.Json": {
               "target": "Package",
