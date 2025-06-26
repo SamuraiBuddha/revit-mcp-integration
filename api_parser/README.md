@@ -1,10 +1,13 @@
-# Revit API HTML to JSON Parser
+# Revit API HTML to Markdown/JSON Parser
 
-This tool converts Revit API documentation from HTML format to structured JSON for AI training purposes.
+This tool converts Revit API documentation from HTML format to:
+1. **Markdown files** - Perfect for RAG (Retrieval-Augmented Generation) systems
+2. **Structured JSON** - For AI training and structured data processing
 
 ## Features
 
 - Parses Revit API HTML documentation files
+- Generates clean, formatted Markdown files for each API element
 - Extracts structured information including:
   - Class/method names and descriptions
   - Namespaces and assemblies
@@ -24,10 +27,13 @@ This tool converts Revit API documentation from HTML format to structured JSON f
 api_parser/
 ├── revit_parser.py      # Main parser script
 ├── raw_data/            # Place HTML files here
-├── processed_data/      # JSON output will be saved here
-│   ├── revit_api_raw.json      # Complete parsed data
-│   ├── revit_api_training.json # Q&A pairs for training
-│   └── processing_stats.json   # Processing statistics
+├── processed_data/      # Output directory
+│   ├── markdown/        # Markdown files for RAG
+│   │   └── *.md        # One .md file per HTML file
+│   └── json/           # JSON output
+│       ├── revit_api_raw.json      # Complete parsed data
+│       ├── revit_api_training.json # Q&A pairs for training
+│       └── processing_stats.json   # Processing statistics
 └── parser_log.txt       # Detailed processing log
 ```
 
@@ -35,12 +41,12 @@ api_parser/
 
 1. Install required dependencies:
 ```bash
-pip install beautifulsoup4
+pip install beautifulsoup4 lxml
 ```
 
 2. Create the necessary directories:
 ```bash
-mkdir raw_data processed_data
+mkdir raw_data
 ```
 
 3. Place your Revit API HTML documentation files in the `raw_data` directory.
@@ -57,9 +63,47 @@ Specify custom output directory:
 python revit_parser.py raw_data --output-dir custom_output
 ```
 
-## Output Format
+## Output Formats
 
-### Raw JSON Structure
+### Markdown Output (for RAG)
+Each HTML file is converted to a clean Markdown file with:
+- Proper heading hierarchy
+- Code blocks with syntax highlighting
+- Tables for properties, methods, and exceptions
+- Clear formatting for easy chunking and retrieval
+
+Example markdown structure:
+```markdown
+# Document Class
+
+**Namespace:** `Autodesk.Revit.DB`
+**Assembly:** RevitAPI.dll
+
+Represents an open Revit project or family document.
+
+## Inheritance
+Object → Element → Document
+
+## Syntax
+### C#
+```csharp
+public class Document : Element
+```
+
+## Properties
+| Name | Description |
+|------|-------------|
+| Title | Gets the title of the document |
+| PathName | Gets the full path of the document file |
+
+## Methods
+| Name | Description |
+|------|-------------|
+| Create | Creates a new element in the document |
+| Delete | Deletes an element from the document |
+```
+
+### JSON Output Structure
 ```json
 {
   "source_file": "Document.html",
@@ -86,6 +130,30 @@ python revit_parser.py raw_data --output-dir custom_output
 }
 ```
 
+## Using with RAG Systems
+
+The markdown output is optimized for RAG systems:
+
+1. **Clean Structure**: Each markdown file represents one API element with consistent formatting
+2. **Easy Chunking**: Clear section headers make it easy to split documents
+3. **Semantic Search**: Well-formatted content improves embedding quality
+4. **Cross-References**: Preserves links and relationships between API elements
+
+Example RAG workflow:
+```python
+# Load markdown files into your RAG system
+import os
+from pathlib import Path
+
+markdown_dir = Path("processed_data/markdown")
+for md_file in markdown_dir.rglob("*.md"):
+    with open(md_file, 'r', encoding='utf-8') as f:
+        content = f.read()
+        # Add to your vector database
+        # Create embeddings
+        # Index for retrieval
+```
+
 ## Example Q&A Pairs Generated
 
 The parser automatically generates various types of questions:
@@ -106,6 +174,7 @@ The parser automatically generates various types of questions:
 ## Next Steps
 
 After parsing:
-1. Review the generated Q&A pairs in `revit_api_training.json`
-2. Use the data to fine-tune language models for Revit API assistance
-3. Consider filtering or augmenting the training data based on your specific needs
+1. **For RAG**: Load markdown files into your vector database
+2. **For Training**: Use the Q&A pairs in `revit_api_training.json`
+3. **For Analysis**: Review statistics in `processing_stats.json`
+4. Consider filtering or augmenting the data based on your specific needs
